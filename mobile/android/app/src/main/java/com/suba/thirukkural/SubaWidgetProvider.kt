@@ -87,50 +87,53 @@ class SubaWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
-            val views = RemoteViews(context.packageName, R.layout.suba_widget)
+            try {
+                val views = RemoteViews(context.packageName, R.layout.suba_widget)
 
-            // Select Kural based on current index or day-of-year
-            val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-            val index = if (currentIndex >= 0) {
-                currentIndex % KURALS.size
-            } else {
-                dayOfYear % KURALS.size
+                val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+                val index = if (currentIndex >= 0) {
+                    currentIndex % KURALS.size
+                } else {
+                    dayOfYear % KURALS.size
+                }
+                val kural = KURALS[index]
+
+                views.setTextViewText(R.id.widget_kural_number, "குறள் ${kural.number}")
+                views.setTextViewText(R.id.widget_chapter, kural.chapter)
+                views.setTextViewText(R.id.widget_kural_line1, kural.line1)
+                views.setTextViewText(R.id.widget_kural_line2, kural.line2)
+                views.setTextViewText(R.id.widget_meaning, kural.meaning)
+
+                // Intent to open Main App
+                val appIntent = Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("open_chat", true)
+                }
+                val appPendingIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    appIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.widget_btn_ask, appPendingIntent)
+                views.setOnClickPendingIntent(R.id.widget_root, appPendingIntent)
+
+                // Intent to cycle to next Kural
+                val nextIntent = Intent(context, SubaWidgetProvider::class.java).apply {
+                    action = ACTION_NEXT_KURAL
+                }
+                val nextPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    1,
+                    nextIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.widget_btn_next, nextPendingIntent)
+
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            val kural = KURALS[index]
-
-            views.setTextViewText(R.id.widget_kural_number, "குறள் ${kural.number}")
-            views.setTextViewText(R.id.widget_chapter, kural.chapter)
-            views.setTextViewText(R.id.widget_kural_line1, kural.line1)
-            views.setTextViewText(R.id.widget_kural_line2, kural.line2)
-            views.setTextViewText(R.id.widget_meaning, kural.meaning)
-
-            // Intent to open Main App Chat
-            val appIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("open_chat", true)
-            }
-            val appPendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                appIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widget_btn_ask, appPendingIntent)
-            views.setOnClickPendingIntent(R.id.widget_root, appPendingIntent)
-
-            // Intent to cycle to next Kural
-            val nextIntent = Intent(context, SubaWidgetProvider::class.java).apply {
-                action = ACTION_NEXT_KURAL
-            }
-            val nextPendingIntent = PendingIntent.getBroadcast(
-                context,
-                1,
-                nextIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widget_btn_next, nextPendingIntent)
-
-            appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }
 
@@ -147,17 +150,21 @@ class SubaWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action == ACTION_NEXT_KURAL) {
-            if (currentIndex < 0) {
-                val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-                currentIndex = (dayOfYear % KURALS.size) + 1
-            } else {
-                currentIndex = (currentIndex + 1) % KURALS.size
-            }
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = ComponentName(context, SubaWidgetProvider::class.java)
-            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-            for (widgetId in allWidgetIds) {
-                updateAppWidget(context, appWidgetManager, widgetId)
+            try {
+                if (currentIndex < 0) {
+                    val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+                    currentIndex = (dayOfYear % KURALS.size) + 1
+                } else {
+                    currentIndex = (currentIndex + 1) % KURALS.size
+                }
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val thisWidget = ComponentName(context, SubaWidgetProvider::class.java)
+                val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+                for (widgetId in allWidgetIds) {
+                    updateAppWidget(context, appWidgetManager, widgetId)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

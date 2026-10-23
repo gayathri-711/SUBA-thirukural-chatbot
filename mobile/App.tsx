@@ -1,156 +1,227 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
-  TouchableOpacity,
   SafeAreaView,
-  StatusBar,
+  BackHandler,
+  ActivityIndicator,
+  TouchableOpacity,
+  TextInput,
+  Modal,
   Platform,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from './src/theme/colors';
-import { HomeScreen } from './src/screens/HomeScreen';
-import { BrowseScreen } from './src/screens/BrowseScreen';
-import { SavedScreen } from './src/screens/SavedScreen';
-import { SettingsScreen } from './src/screens/SettingsScreen';
-import { ChatModal } from './src/components/ChatModal';
+import { StatusBar } from 'expo-status-bar';
+import { WebView } from 'react-native-webview';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+
+const STORAGE_KEY_URL = 'suba_mobile_web_url_v1';
+const DEFAULT_URL = 'http://192.168.0.9:5173';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'browse' | 'saved' | 'settings'>('home');
-  const [chatVisible, setChatVisible] = useState(false);
-  const [browseParams, setBrowseParams] = useState<{ division?: string; search?: string }>({});
-  const [language, setLanguage] = useState('auto');
+  const [webUrl, setWebUrl] = useState(DEFAULT_URL);
+  const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [configModalVisible, setConfigModalVisible] = useState(false);
+  const [inputUrl, setInputUrl] = useState(DEFAULT_URL);
+  const [canGoBack, setCanGoBack] = useState(false);
 
-  const handleNavigateToBrowse = (division?: string, search?: string) => {
-    setBrowseParams({ division, search });
-    setActiveTab('browse');
+  const webViewRef = useRef<any>(null);
+
+  // Load saved custom URL if available
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_KEY_URL);
+        if (saved && saved.trim()) {
+          setWebUrl(saved.trim());
+          setInputUrl(saved.trim());
+        }
+      } catch (e) {
+        console.warn('Failed to load saved URL:', e);
+      }
+    })();
+  }, []);
+
+  // Handle hardware Android back button
+  useEffect(() => {
+    const onBackPress = () => {
+      if (canGoBack && webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [canGoBack]);
+
+  const handleSaveUrl = async () => {
+    const cleanUrl = inputUrl.trim().replace(/\/+$/, '');
+    if (cleanUrl) {
+      setWebUrl(cleanUrl);
+      setHasError(false);
+      setLoading(true);
+      await AsyncStorage.setItem(STORAGE_KEY_URL, cleanUrl);
+    }
+    setConfigModalVisible(false);
   };
 
-  const handleNavigateToSettings = () => {
-    setActiveTab('settings');
+  const handleResetDefaultUrl = async () => {
+    setInputUrl(DEFAULT_URL);
+    setWebUrl(DEFAULT_URL);
+    setHasError(false);
+    setLoading(true);
+    await AsyncStorage.removeItem(STORAGE_KEY_URL);
+    setConfigModalVisible(false);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
 
-      {/* Screen Router */}
-      <View style={styles.screenContainer}>
-        {activeTab === 'home' && (
-          <HomeScreen
-            onOpenChat={() => setChatVisible(true)}
-            onNavigateToBrowse={handleNavigateToBrowse}
-            onNavigateToSettings={handleNavigateToSettings}
-            language={language}
-          />
-        )}
+      {/* Main WebView Container */}
+      <View style={styles.webContainer}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: webUrl }}
+          style={styles.webView}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={false}
+          mixedContentMode="always"
+          originWhitelist={['*']}
+          cacheEnabled={true}
+          pullToRefreshEnabled={true}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#E6B447" />
+              <Text style={styles.loadingTitle}>SUBA • சுபா</Text>
+              <Text style={styles.loadingSubtitle}>
+                குறளறிந்து வாழ்வோம் • Thirukkural Wisdom
+              </Text>
+            </View>
+          )}
+          onLoadStart={() => {
+            setLoading(true);
+            setHasError(false);
+          }}
+          onLoadEnd={() => {
+            setLoading(false);
+          }}
+          onError={(syntheticEvent: any) => {
+            const { nativeEvent } = syntheticEvent;
+            setLoading(false);
+            setHasError(true);
+            setErrorMessage(nativeEvent?.description || 'Connection failed');
+          }}
+          onNavigationStateChange={(navState: any) => {
+            setCanGoBack(Boolean(navState?.canGoBack));
+          }}
+        />
 
-        {activeTab === 'browse' && (
-          <BrowseScreen
-            initialDivision={browseParams.division}
-            initialSearch={browseParams.search}
-            onOpenChat={() => setChatVisible(true)}
-          />
-        )}
+        {/* Error Fallback Banner if PC/Wi-Fi is disconnected */}
+        {hasError && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="wifi-outline" size={48} color="#E6B447" />
+            <Text style={styles.errorTitle}>இணைக்க முடியவில்லை</Text>
+            <Text style={styles.errorSubtitle}>
+              Unable to reach SUBA at:
+            </Text>
+            <Text style={styles.errorUrl}>{webUrl}</Text>
+            <Text style={styles.errorInstructions}>
+              1. Make sure your phone and laptop are on the same Wi-Fi.{"\n"}
+              2. Make sure your laptop is running Vite on your local network.{"\n"}
+              3. You can also change the URL to a tunnel or cloud link.
+            </Text>
 
-        {activeTab === 'saved' && (
-          <SavedScreen onOpenChat={() => setChatVisible(true)} />
-        )}
+            <View style={styles.errorActions}>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => {
+                  setHasError(false);
+                  setLoading(true);
+                  webViewRef.current?.reload();
+                }}
+              >
+                <Ionicons name="refresh" size={18} color="#071F18" />
+                <Text style={styles.retryButtonText}>Retry • மீண்டும் முயல்க</Text>
+              </TouchableOpacity>
 
-        {activeTab === 'settings' && (
-          <SettingsScreen
-            currentLanguage={language}
-            onLanguageChange={setLanguage}
-          />
-        )}
-      </View>
-
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('home')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name={activeTab === 'home' ? 'home' : 'home-outline'}
-            size={22}
-            color={activeTab === 'home' ? COLORS.gold : COLORS.textMuted}
-          />
-          <Text style={[styles.navText, activeTab === 'home' && styles.navTextActive]}>
-            முகப்பு
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => { setBrowseParams({}); setActiveTab('browse'); }}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons
-            name={activeTab === 'browse' ? 'book-open-page-variant' : 'book-open-page-variant-outline'}
-            size={22}
-            color={activeTab === 'browse' ? COLORS.gold : COLORS.textMuted}
-          />
-          <Text style={[styles.navText, activeTab === 'browse' && styles.navTextActive]}>
-            களஞ்சியம்
-          </Text>
-        </TouchableOpacity>
-
-        {/* Center Chat Trigger */}
-        <TouchableOpacity
-          style={styles.centerNavBtn}
-          onPress={() => setChatVisible(true)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.centerIconCircle}>
-            <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => setConfigModalVisible(true)}
+              >
+                <Ionicons name="settings-outline" size={18} color="#E6B447" />
+                <Text style={styles.settingsButtonText}>Change URL</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.centerNavText}>சுபா AI</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('saved')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name={activeTab === 'saved' ? 'bookmark' : 'bookmark-outline'}
-            size={22}
-            color={activeTab === 'saved' ? COLORS.gold : COLORS.textMuted}
-          />
-          <Text style={[styles.navText, activeTab === 'saved' && styles.navTextActive]}>
-            சேமித்தவை
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('settings')}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name={activeTab === 'settings' ? 'settings' : 'settings-outline'}
-            size={22}
-            color={activeTab === 'settings' ? COLORS.gold : COLORS.textMuted}
-          />
-          <Text style={[styles.navText, activeTab === 'settings' && styles.navTextActive]}>
-            அமைப்புகள்
-          </Text>
-        </TouchableOpacity>
+        )}
       </View>
 
-      {/* Interactive Full-Screen Chat Modal */}
-      <ChatModal
-        visible={chatVisible}
-        onClose={() => setChatVisible(false)}
-        language={language}
-        onNavigateToSettings={() => {
-          setChatVisible(false);
-          setActiveTab('settings');
-        }}
-      />
+      {/* Floating Settings Gear (top-right corner to allow switching network URL anytime) */}
+      <TouchableOpacity
+        style={styles.floatingSettings}
+        onPress={() => setConfigModalVisible(true)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="settings-sharp" size={16} color="#E6B447" />
+      </TouchableOpacity>
+
+      {/* Modal for setting custom backend / webpage URL */}
+      <Modal
+        visible={configModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setConfigModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Configure SUBA Server</Text>
+              <TouchableOpacity onPress={() => setConfigModalVisible(false)}>
+                <Ionicons name="close" size={22} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalDescription}>
+              Enter the URL of your SUBA server (Wi-Fi LAN IP or Cloud URL):
+            </Text>
+
+            <TextInput
+              style={styles.modalInput}
+              value={inputUrl}
+              onChangeText={setInputUrl}
+              placeholder="http://192.168.0.9:5173"
+              placeholderTextColor="#64748B"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalResetButton}
+                onPress={handleResetDefaultUrl}
+              >
+                <Text style={styles.modalResetText}>Reset Default</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={handleSaveUrl}
+              >
+                <Text style={styles.modalSaveText}>Save & Connect</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -158,64 +229,197 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#071F18',
   },
-  screenContainer: {
+  webContainer: {
     flex: 1,
+    position: 'relative',
   },
-  bottomNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: COLORS.primary,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.primaryDark,
-    paddingVertical: 8,
-    paddingBottom: Platform.OS === 'ios' ? 18 : 8,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  navItem: {
-    alignItems: 'center',
+  webView: {
     flex: 1,
+    backgroundColor: '#071F18',
   },
-  navText: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  navTextActive: {
-    color: COLORS.gold,
-    fontWeight: '700',
-  },
-  centerNavBtn: {
-    alignItems: 'center',
-    marginTop: -16,
-    flex: 1,
-  },
-  centerIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.gold,
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#071F18',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
+    padding: 24,
+    zIndex: 10,
   },
-  centerNavText: {
-    fontSize: 10,
-    color: COLORS.goldLight,
-    fontWeight: '700',
+  loadingTitle: {
+    color: '#E6B447',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginTop: 16,
+    letterSpacing: 1,
+  },
+  loadingSubtitle: {
+    color: '#94A3B8',
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#071F18',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    zIndex: 20,
+  },
+  errorTitle: {
+    color: '#E6B447',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  errorSubtitle: {
+    color: '#F8FAFC',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  errorUrl: {
+    color: '#94A3B8',
+    fontSize: 12,
     marginTop: 2,
+    marginBottom: 16,
+  },
+  errorInstructions: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'left',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 180, 71, 0.2)',
+    marginBottom: 20,
+    width: '100%',
+  },
+  errorActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E6B447',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    gap: 6,
+  },
+  retryButtonText: {
+    color: '#071F18',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  settingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(230, 180, 71, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 180, 71, 0.4)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  settingsButtonText: {
+    color: '#E6B447',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  floatingSettings: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 44 : 10,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(7, 31, 24, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 180, 71, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#0F382A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 180, 71, 0.4)',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    color: '#E6B447',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalDescription: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  modalInput: {
+    backgroundColor: '#071F18',
+    color: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 180, 71, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  modalResetButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  modalResetText: {
+    color: '#94A3B8',
+    fontSize: 12,
+  },
+  modalSaveButton: {
+    backgroundColor: '#E6B447',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+  },
+  modalSaveText: {
+    color: '#071F18',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });

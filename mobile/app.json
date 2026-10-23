@@ -18,8 +18,10 @@
     "android": {
       "package": "com.suba.thirukkural",
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
       ],
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#0F382A",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -37,6 +39,16 @@
         "projectId": "e6e3c158-0987-4d39-9ebf-abdcf8a6d49e"
       }
     },
-    "owner": "gayathri711"
+    "owner": "gayathri711",
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
   }
 }

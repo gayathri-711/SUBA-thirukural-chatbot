@@ -4,20 +4,20 @@ export function getApiBaseUrl() {
   if (typeof window !== 'undefined' && window.localStorage) {
     const saved = localStorage.getItem('suba_backend_api_url');
     if (saved && saved.trim()) {
-      return saved.trim().replace(/\/+$/, '');
+      // If running on phone and saved URL is localhost, ignore it to prevent fetch failed
+      const isRemoteHost = window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      if (!(isRemoteHost && saved.includes('localhost'))) {
+        return saved.trim().replace(/\/+$/, '');
+      }
     }
   }
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
   }
-  // When running inside Android Capacitor, localhost is the phone itself.
-  // Default to the computer's LAN IP so it connects seamlessly over Wi-Fi.
-  if (typeof window !== 'undefined' && (
-    window.Capacitor !== undefined ||
-    window.location.protocol === 'capacitor:' ||
-    (window.location.hostname === 'localhost' && (!window.location.port || window.location.port === ''))
-  )) {
-    return 'http://192.168.0.9:8000/api';
+  // Use same-origin relative path so requests route through the Vite proxy seamlessly
+  // without CORS or port 8000 firewall blocks
+  if (typeof window !== 'undefined' && window.location) {
+    return '/api';
   }
   return 'http://localhost:8000/api';
 }

@@ -6,12 +6,14 @@
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~58.0.17",
+    "expo-build-properties": "~58.0.11",
     "expo-linear-gradient": "~58.0.3",
     "expo-speech": "^58.0.3",
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
     "react-native": "0.88.0",
-    "react-native-safe-area-context": "^5.10.1"
+    "react-native-safe-area-context": "^5.10.1",
+    "react-native-webview": "14.0.1"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
@@ -21,8 +23,8 @@
   "scripts": {
     "start": "expo start",
     "qr": "node -e \"const qr = require('qrcode-terminal'); qr.generate('exp://192.168.0.9:8081', {small: true}, (code) => console.log(code));\"",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "private": true
