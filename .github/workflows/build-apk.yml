@@ -33,15 +33,18 @@ jobs:
         working-directory: ./frontend/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
-          mkdir -p ../../output-apk
-          find . -name "*.apk" -exec cp -v {} ../../output-apk/ \;
-          ls -la ../../output-apk
+          ./gradlew assembleDebug
+
+      - name: Copy APK to Output
+        run: |
+          mkdir -p dist-apk
+          find frontend/android -name "*.apk" -exec cp -v {} dist-apk/SUBA-Thirukkural.apk \;
+          ls -la dist-apk/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SUBA-Thirukkural-apk
-          path: output-apk/*.apk
+          path: dist-apk/SUBA-Thirukkural.apk
           if-no-files-found: error
           retention-days: 14
