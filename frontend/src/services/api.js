@@ -7,7 +7,19 @@ export function getApiBaseUrl() {
       return saved.trim().replace(/\/+$/, '');
     }
   }
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
+  }
+  // When running inside Android Capacitor, localhost is the phone itself.
+  // Default to the computer's LAN IP so it connects seamlessly over Wi-Fi.
+  if (typeof window !== 'undefined' && (
+    window.Capacitor !== undefined ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.hostname === 'localhost' && (!window.location.port || window.location.port === ''))
+  )) {
+    return 'http://192.168.0.9:8000/api';
+  }
+  return 'http://localhost:8000/api';
 }
 
 export function setCustomApiBaseUrl(url) {

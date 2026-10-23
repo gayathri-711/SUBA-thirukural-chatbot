@@ -141,7 +141,11 @@ def translate_kural_content(req: TranslateRequest, db: Session = Depends(get_db)
     """
     Translates response or commentary on demand to either Tamil or English.
     """
-    target = req.target_language.lower()
+    target = req.target_language.lower().strip()
+    if target not in ("ta", "en"):
+        target = "ta"
+
+    # 1. If Kural number is provided, return rich scholarly translation from DB
     if req.kural_number:
         kural = db.query(Kural).filter(Kural.kural_number == req.kural_number).first()
         if kural:
@@ -155,8 +159,31 @@ def translate_kural_content(req: TranslateRequest, db: Session = Depends(get_db)
                 target_language=target
             )
 
+    # 2. General text translation
+    text_to_translate = req.text.strip()
+    if not text_to_translate:
+        return TranslateResponse(
+            translated_text="",
+            source_language="auto",
+            target_language=target
+        )
+
+    try:
+        from deep_translator import MyMemoryTranslator
+        src_lang = 'en-GB' if target == 'ta' else 'ta-IN'
+        tgt_lang = 'ta-IN' if target == 'ta' else 'en-GB'
+        translated = MyMemoryTranslator(source=src_lang, target=tgt_lang).translate(text_to_translate[:1500])
+        if translated:
+            return TranslateResponse(
+                translated_text=translated,
+                source_language="en" if target == "ta" else "ta",
+                target_language=target
+            )
+    except Exception as e:
+        print(f"Translation service error: {e}")
+
     return TranslateResponse(
-        translated_text=req.text,
+        translated_text=text_to_translate,
         source_language="auto",
         target_language=target
     )

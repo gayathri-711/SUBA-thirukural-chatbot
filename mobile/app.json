@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "SUBA",
+    "slug": "suba-thirukkural",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F382A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.suba.thirukkural"
+    },
+    "android": {
+      "package": "com.suba.thirukkural",
+      "permissions": [
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0F382A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "defaultApiUrl": "http://192.168.0.9:8000/api",
+      "eas": {
+        "projectId": "e6e3c158-0987-4d39-9ebf-abdcf8a6d49e"
+      }
+    },
+    "owner": "gayathri711"
+  }
+}

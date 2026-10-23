@@ -3,6 +3,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import KuralModal from './components/KuralModal';
 import AiSettingsModal from './components/AiSettingsModal';
+import FloatingChatWidget from './components/FloatingChatWidget';
 
 import Home from './pages/Home';
 import BrowseKurals from './pages/BrowseKurals';
@@ -389,6 +390,15 @@ export default function App() {
         onSaveConfig={(newCfg) => setAiConfig(newCfg)}
         language={language}
       />
+
+      {/* Floating Chatbot Widget on all other tabs (Browse, Daily, Saved, History, About) */}
+      {activeTab !== 'chat' && (
+        <FloatingChatWidget
+          language={language}
+          aiConfig={aiConfig}
+          onOpenModal={(num) => setModalKuralNumber(num)}
+        />
+      )}
     </div>
   );
 }
