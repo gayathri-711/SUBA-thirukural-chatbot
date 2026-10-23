@@ -30,12 +30,9 @@ jobs:
       - name: Accept Android SDK Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Install Frontend Dependencies & Sync
+      - name: Install Frontend Dependencies
         working-directory: ./frontend
-        run: |
-          npm install --legacy-peer-deps
-          npm run build
-          npx cap sync android
+        run: npm install --legacy-peer-deps
 
       - name: Build Android Debug APK with Gradle
         working-directory: ./frontend/android
