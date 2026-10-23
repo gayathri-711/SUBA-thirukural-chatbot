@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF6EE;
+    color: #081C15;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Custom smooth scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FAF6EE;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #DFD4C2;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #C59B27;
+  }
+}
+
+/* Poetic styling for Tamil Thirukkural verses */
+.kural-verse {
+  font-family: 'Anek Tamil', 'Noto Sans Tamil', serif;
+  letter-spacing: 0.02em;
+  line-height: 1.8;
+}
+
+/* Traditional palm-leaf / parchment paper effect */
+.parchment-card {
+  background: linear-gradient(145deg, #FFFFFF 0%, #FAF6EE 100%);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.gold-glow {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+}
