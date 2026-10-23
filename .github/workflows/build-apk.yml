@@ -9,6 +9,8 @@ jobs:
   build-apk:
     name: Build Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -48,3 +50,19 @@ jobs:
           path: dist-apk/SUBA-Thirukkural.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish Direct Download APK Release
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: v1.0.0
+          name: "SUBA Thirukkural v1.0.0 (Home Screen Widget)"
+          body: |
+            ### 📱 SUBA Thirukkural Android App & Home Screen Widget
+            - ✅ Complete offline-bundled AI Thirukkural Wisdom Chatbot
+            - ✅ Native Home Screen Daily Kural Widget with "Ask SUBA" button
+            - ✅ Direct download and install for Android
+          files: dist-apk/SUBA-Thirukkural.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
