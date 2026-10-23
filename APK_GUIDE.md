@@ -58,19 +58,32 @@ The script will build the frontend, sync Capacitor, compile with Gradle using JD
 
 ---
 
+## 📱 How to Add and Use the Android Home Screen Widget
+
+Once the APK is installed on your phone:
+1. **Go to your phone's Home Screen**.
+2. **Press and hold (long-press)** on any empty area of the screen.
+3. Tap **Widgets** (விட்ஜெட்டுகள்) from the popup menu.
+4. Scroll down or search for **SUBA Thirukkural** (or **SUBA • தினசரி திருக்குறள்**).
+5. Drag and place the widget on your home screen. You can resize it (recommended size: 4x2 or 3x2).
+6. **Widget Features**:
+   - 📜 **Daily Kural**: Displays authentic Tamil Kural with its Athikaram and detailed Tamil meaning.
+   - 🔄 **அடுத்த குறள் (Next Kural)**: Tap to instantly cycle through inspiring Kurals directly from the widget.
+   - 💬 **சுபாவிடம் கேட்க • Ask SUBA**: Tap to jump directly into the SUBA AI Wisdom Chatbot to ask life questions!
+
+---
+
 ## 🌐 Connecting the Mobile App to the Backend
 
 When running on an Android device:
 - The phone cannot reach `http://localhost:8000` because `localhost` refers to the phone itself.
 - **For local testing over Wi-Fi**:
   1. Find your computer's IP address (run `ipconfig` in PowerShell, e.g. `192.168.1.15`).
-  2. Start the FastAPI backend with host `0.0.0.0`:
-     ```bash
-     uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-     ```
+  2. The FastAPI backend is already running on `0.0.0.0:8000`.
   3. In the SUBA Android app, click the **Settings / AI Model** button (⚙️), and set **Backend Server URL** to:
      ```
      http://192.168.1.15:8000/api
      ```
 - **For cloud deployment**:
   Host the backend on Render, Railway, or Fly.io and enter your HTTPS URL in the app settings.
+
