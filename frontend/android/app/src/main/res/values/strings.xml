@@ -4,4 +4,7 @@
     <string name="title_activity_main">SUBA Thirukkural</string>
     <string name="package_name">com.suba.thirukkural</string>
     <string name="custom_url_scheme">com.suba.thirukkural</string>
+    <string name="widget_description">Daily Thirukkural Wisdom &amp; Ask SUBA Chatbot</string>
+    <string name="widget_title">SUBA • தினசரி திருக்குறள்</string>
+    <string name="widget_ask_button">💬 சுபாவிடம் கேட்க • Ask SUBA</string>
 </resources>

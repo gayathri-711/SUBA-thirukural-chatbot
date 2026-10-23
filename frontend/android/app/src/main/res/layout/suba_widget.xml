@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header: Title & Number -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_header_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_title"
+            android:textColor="#E6B447"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_kural_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="குறள் 1"
+            android:textColor="#F3E5AB"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Chapter / Athikaram -->
+    <TextView
+        android:id="@+id/widget_chapter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="அதிகாரம் 1: கடவுள் வாழ்த்து"
+        android:textColor="#A0AEC0"
+        android:textSize="10sp"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Kural Line 1 -->
+    <TextView
+        android:id="@+id/widget_kural_line1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="அகர முதல எழுத்தெல்லாம் ஆதி"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- Kural Line 2 -->
+    <TextView
+        android:id="@+id/widget_kural_line2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="பகவன் முதற்றே உலகு."
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Meaning -->
+    <TextView
+        android:id="@+id/widget_meaning"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="எழுத்துக்களுக்கு அகரம் முதன்மை; அதுபோல உலகிற்கு ஆதிபகவன் முதன்மை."
+        android:textColor="#CBD5E0"
+        android:textSize="10sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Bottom Actions: Using RelativeLayout (no spacer view) -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/widget_btn_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="🔄 அடுத்த குறள்"
+            android:textColor="#E6B447"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_btn_ask"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/widget_btn_bg"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text="@string/widget_ask_button"
+            android:textColor="#071F18"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+</LinearLayout>
