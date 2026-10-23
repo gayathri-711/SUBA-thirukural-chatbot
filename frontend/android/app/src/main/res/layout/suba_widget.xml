@@ -42,7 +42,7 @@
         android:layout_height="wrap_content"
         android:text="அதிகாரம் 1: கடவுள் வாழ்த்து"
         android:textColor="#A0AEC0"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:layout_marginBottom="4dp" />
 
     <!-- Kural Line 1 -->
@@ -68,7 +68,7 @@
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
     <!-- Meaning -->
     <TextView
@@ -83,17 +83,18 @@
         android:ellipsize="end"
         android:layout_marginBottom="6dp" />
 
-    <!-- Bottom Actions: Using RelativeLayout (no spacer view) -->
-    <RelativeLayout
+    <!-- Bottom Actions: Horizontal LinearLayout -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
         <TextView
             android:id="@+id/widget_btn_next"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:layout_weight="1"
             android:text="🔄 அடுத்த குறள்"
             android:textColor="#E6B447"
             android:textSize="11sp"
@@ -103,8 +104,6 @@
             android:id="@+id/widget_btn_ask"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
             android:background="@drawable/widget_btn_bg"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
@@ -114,6 +113,6 @@
             android:textColor="#071F18"
             android:textSize="11sp"
             android:textStyle="bold" />
-    </RelativeLayout>
+    </LinearLayout>
 
 </LinearLayout>
