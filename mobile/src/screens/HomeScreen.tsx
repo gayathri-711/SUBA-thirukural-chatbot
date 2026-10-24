@@ -24,6 +24,19 @@ interface HomeScreenProps {
   language?: string;
 }
 
+const FALLBACK_KURAL: Kural = {
+  kural_number: 1,
+  chapter_name_tamil: 'கடவுள் வாழ்த்து',
+  chapter_name_english: 'Praise of God',
+  chapter_number: 1,
+  division: 'அறத்துப்பால்',
+  line_1_tamil: 'அகர முதல எழுத்தெல்லாம் ஆதி',
+  line_2_tamil: 'பகவன் முதற்றே உலகு.',
+  meaning_tamil: 'எழுத்துக்களுக்கு அகரம் முதன்மை; அதுபோல உலகிற்கு ஆதிபகவன் முதன்மை.',
+  meaning_english: 'As the letter A is the first of all letters, so the eternal God is first in the world.',
+  explanation_tamil_sp: 'எழுத்துக்களுக்கு அகரம் தொடக்கம்; அதுபோல உலகுக்கு ஆதிபகவன் தொடக்கம்.',
+};
+
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenChat,
   onNavigateToBrowse,
@@ -133,42 +146,45 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <Text style={styles.heroCategory}>தினசரித் திருக்குறள் • KURAL OF THE DAY</Text>
           </View>
 
-          {loadingDaily ? (
+          {loadingDaily && !dailyKural ? (
             <ActivityIndicator size="small" color={COLORS.gold} style={{ marginVertical: 20 }} />
-          ) : dailyKural ? (
-            <View>
-              <View style={styles.kuralBadgeRow}>
-                <View style={styles.kuralPill}>
-                  <Text style={styles.kuralPillText}>குறள் {dailyKural.kural_number}</Text>
-                </View>
-                <Text style={styles.kuralChapter}>{dailyKural.chapter_name_tamil || 'அறத்துப்பால்'}</Text>
-                
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <TouchableOpacity onPress={handleSpeakDaily} style={[styles.bookmarkBtn, { marginRight: 6 }]}>
-                    <Ionicons name={isSpeakingDaily ? "volume-high" : "volume-medium-outline"} size={20} color={COLORS.gold} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={handleToggleSave} style={styles.bookmarkBtn}>
-                    <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={18} color={COLORS.gold} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.coupletBox}>
-                <Text style={styles.couplet1}>{dailyKural.line_1_tamil}</Text>
-                <Text style={styles.couplet2}>{dailyKural.line_2_tamil}</Text>
-              </View>
-
-              <Text style={styles.heroMeaning}>
-                {dailyKural.meaning_tamil || dailyKural.explanation_tamil_sp}
-              </Text>
-
-              {dailyKural.meaning_english && (
-                <Text style={styles.heroMeaningEn}>"{dailyKural.meaning_english}"</Text>
-              )}
-            </View>
           ) : (
-            <Text style={styles.errorText}>குறளை ஏற்றுவதில் பிழை. மீண்டும் முயற்சிக்கவும்.</Text>
+            (() => {
+              const currentKural = dailyKural || FALLBACK_KURAL;
+              return (
+                <View>
+                  <View style={styles.kuralBadgeRow}>
+                    <View style={styles.kuralPill}>
+                      <Text style={styles.kuralPillText}>குறள் {currentKural.kural_number}</Text>
+                    </View>
+                    <Text style={styles.kuralChapter}>{currentKural.chapter_name_tamil || 'அறத்துப்பால்'}</Text>
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity onPress={handleSpeakDaily} style={[styles.bookmarkBtn, { marginRight: 6 }]}>
+                        <Ionicons name={isSpeakingDaily ? "volume-high" : "volume-medium-outline"} size={20} color={COLORS.gold} />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={handleToggleSave} style={styles.bookmarkBtn}>
+                        <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={18} color={COLORS.gold} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.coupletBox}>
+                    <Text style={styles.couplet1}>{currentKural.line_1_tamil}</Text>
+                    <Text style={styles.couplet2}>{currentKural.line_2_tamil}</Text>
+                  </View>
+
+                  <Text style={styles.heroMeaning}>
+                    {currentKural.meaning_tamil || currentKural.explanation_tamil_sp}
+                  </Text>
+
+                  {currentKural.meaning_english && (
+                    <Text style={styles.heroMeaningEn}>"{currentKural.meaning_english}"</Text>
+                  )}
+                </View>
+              );
+            })()
           )}
         </View>
 
