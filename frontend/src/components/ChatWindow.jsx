@@ -330,54 +330,54 @@ export default function ChatWindow({
             </div>
           </div>
         ) : (
-          /* Normal Composer with Voice Input & Send */
-          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative flex items-end space-x-2">
-            <div className="relative flex-1">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={inputText}
-                onChange={handleTextareaChange}
-                onKeyDown={handleKeyDown}
-                onFocus={handleFocus}
-                placeholder={t.composerPlaceholder}
-                className="w-full resize-none py-3 pl-4 pr-12 bg-cream-50 border border-cream-300 rounded-2xl focus:outline-hidden focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-forest-950 placeholder:text-forest-400 text-sm leading-relaxed max-h-32 transition-all font-sans"
-              />
-              <span className="absolute right-3 bottom-3 text-[10px] text-forest-400 font-mono hidden sm:inline">
-                ↵ Enter
-              </span>
-            </div>
-
-            {/* Voice Input Microphone Button */}
+          /* Normal Composer with Plus, Mic & Send Matching Reference UI */
+          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative flex items-center space-x-2">
+            {/* Plus Icon Circle Button */}
             <button
               type="button"
-              id="btn-voice-record"
-              data-testid="btn-voice-record"
-              onClick={startVoiceRecording}
-              disabled={loading}
-              className={`p-3 rounded-2xl flex items-center justify-center transition-all duration-200 cursor-pointer shadow-xs border ${
-                loading
-                  ? 'bg-cream-200 text-forest-400 border-cream-300 cursor-not-allowed'
-                  : 'bg-cream-100 hover:bg-gold-100 border-gold-300/80 text-forest-800 hover:text-gold-700 active:scale-95'
-              }`}
-              title={t.voiceInputBtn}
-              aria-label={t.voiceInputBtn}
+              className="w-10 h-10 rounded-full bg-[#EDE9FE] border border-[#DDD6FE] text-[#6D28D9] flex items-center justify-center shrink-0 hover:bg-[#DDD6FE] transition-colors cursor-pointer shadow-xs"
+              title="Add attachment or action"
             >
-              <Mic className="w-4 h-4 text-gold-600" />
+              <span className="text-xl font-bold leading-none">+</span>
             </button>
 
-            {/* Submit Question Button */}
+            {/* Pill Input Container with Mic Inside */}
+            <div className="relative flex-1 flex items-center bg-[#F8F6FC] border border-[#E2E8F0] rounded-full px-4 py-1.5 focus-within:border-[#7C3AED] focus-within:ring-1 focus-within:ring-[#7C3AED] transition-all">
+              <input
+                ref={textareaRef}
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={handleFocus}
+                placeholder="Ask me about Thirukkural..."
+                className="w-full bg-transparent text-sm text-[#1E1B4B] placeholder:text-slate-400 focus:outline-hidden py-1.5 font-sans"
+              />
+
+              {/* Microphone inside input pill */}
+              <button
+                type="button"
+                onClick={startVoiceRecording}
+                disabled={loading}
+                className="p-1.5 text-slate-400 hover:text-[#6D28D9] transition-colors cursor-pointer shrink-0"
+                title="Voice input"
+              >
+                <Mic className="w-4.5 h-4.5" />
+              </button>
+            </div>
+
+            {/* Submit Question Button: Circular Vibrant Indigo with Paper Airplane */}
             <button
               type="submit"
               disabled={!inputText.trim() || loading}
-              className={`p-3 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 shadow-md ${
                 !inputText.trim() || loading
-                  ? 'bg-cream-200 text-forest-400 cursor-not-allowed'
-                  : 'bg-forest-800 hover:bg-forest-700 text-gold-300 shadow-md transform active:scale-95 cursor-pointer'
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                  : 'bg-[#6366F1] hover:bg-[#4F46E5] text-white transform active:scale-95 cursor-pointer'
               }`}
               aria-label="Send message"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 ml-0.5" />
             </button>
           </form>
         )}

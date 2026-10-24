@@ -9,8 +9,10 @@ import {
   RefreshControl,
   SafeAreaView,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../theme/colors';
 import { ApiService } from '../services/api';
 import { Kural } from '../types';
@@ -111,19 +113,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar barStyle="light-content" />
 
-      {/* Clean Executive Header */}
-      <View style={styles.header}>
+      {/* Clean Header with Thiruvalluvar Badge & Lotus Brand */}
+      <LinearGradient
+        colors={['#EDE9FE', '#F5F3FF', '#FAF8FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerBrand}>
-          <View style={styles.brandBadge}>
-            <MaterialCommunityIcons name="book-open-page-variant" size={20} color={COLORS.gold} />
+          <View style={styles.thiruvalluvarBadge}>
+            <MaterialCommunityIcons name="feather" size={18} color="#6D28D9" />
           </View>
-          <View>
+          <View style={styles.headerCenterText}>
             <View style={styles.titleRow}>
+              <MaterialCommunityIcons name="flower-tulip-outline" size={18} color="#6D28D9" />
               <Text style={styles.brandTitle}>SUBA</Text>
-              <Text style={styles.brandDot}>•</Text>
-              <Text style={styles.brandTitleTamil}>சுபா</Text>
             </View>
-            <Text style={styles.brandSubtitle}>AI திருக்குறள் வழிகாட்டி</Text>
+            <Text style={styles.brandSubtitle}>Your Thirukkural AI Companion</Text>
           </View>
         </View>
 
@@ -132,9 +138,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           onPress={onNavigateToSettings}
           accessibilityLabel="Open settings"
         >
-          <Ionicons name="settings-outline" size={19} color={COLORS.goldLight} />
+          <Ionicons name="settings-outline" size={20} color="#1E1B4B" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scroll}
@@ -367,26 +373,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 8 : 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.primaryDark,
+    borderBottomColor: '#EDE9FE',
   },
   headerBrand: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  brandBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.primaryDark,
+  thiruvalluvarBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.gold,
+    shadowColor: '#6D28D9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerCenterText: {
+    justifyContent: 'center',
   },
   titleRow: {
     flexDirection: 'row',
@@ -394,35 +408,26 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   brandTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  brandDot: {
-    color: COLORS.gold,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  brandTitleTamil: {
-    color: COLORS.goldLight,
-    fontSize: 15,
-    fontWeight: '700',
+    color: '#3B1E68',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
   brandSubtitle: {
-    color: '#CBD5E1',
+    color: '#6B7280',
     fontSize: 11,
+    fontWeight: '500',
     marginTop: 1,
   },
   settingsIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EDE9FE',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   scroll: {
     flex: 1,
