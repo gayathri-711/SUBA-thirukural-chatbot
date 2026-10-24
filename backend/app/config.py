@@ -1,6 +1,10 @@
 import os
+from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = (BACKEND_DIR / "kurals.db").as_posix()
 
 class Settings(BaseSettings):
     APP_NAME: str = "SUBA - AI Thirukkural Wisdom Chatbot"
@@ -8,8 +12,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     HOST: str = "0.0.0.0"
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
-    DATABASE_URL: str = "sqlite:///./kurals.db"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,*"
+    DATABASE_URL: str = f"sqlite:///{DEFAULT_DB_PATH}"
     
     # AI Provider Settings
     AI_PROVIDER: str = "none"  # "gemini", "openai", "ollama", or "none" (built-in grounded synthesizer)
