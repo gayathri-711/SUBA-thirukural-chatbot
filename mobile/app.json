@@ -44,6 +44,13 @@
     "owner": "gayathri071126",
     "plugins": [
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow SUBA to access your microphone to listen to questions in Tamil and English.",
+          "speechRecognitionPermission": "Allow SUBA to recognize your voice and convert it into questions."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

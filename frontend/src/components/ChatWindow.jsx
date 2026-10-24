@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Scroll, RefreshCw, AlertCircle, Loader2, Mic, MicOff, X, Radio } from 'lucide-react';
+import { Send, Sparkles, Scroll, RefreshCw, AlertCircle, Loader2, Mic, MicOff, X, Radio, Check } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import QuestionSuggestions from './QuestionSuggestions';
 import { getT } from '../utils/translations';
@@ -146,6 +146,30 @@ export default function ChatWindow({
       setIsRecording(false);
       setRecordingDuration(0);
     }
+  };
+
+  const stopAndKeepSentence = () => {
+    clearInterval(timerRef.current);
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      recognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch {}
+      mediaRecorderRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingDuration(0);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 100);
   };
 
   const cancelVoiceRecording = () => {
@@ -319,10 +343,20 @@ export default function ChatWindow({
 
               <button
                 type="button"
+                onClick={stopAndKeepSentence}
+                className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer transform active:scale-95"
+                title={isTamil ? 'கேள்வியாக மாற்றி வைக்கவும்' : 'Convert to sentence for question'}
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{isTamil ? 'கேள்வியாக மாற்று' : 'Use as Question'}</span>
+              </button>
+
+              <button
+                type="button"
                 id="btn-voice-send"
                 data-testid="btn-voice-send"
                 onClick={stopAndSendVoiceRecording}
-                className="px-4 py-2 rounded-xl bg-forest-800 hover:bg-forest-700 text-gold-300 text-xs font-bold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer transform active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer transform active:scale-95"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{t.voiceRecordingStop}</span>

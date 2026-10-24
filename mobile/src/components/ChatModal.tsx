@@ -24,6 +24,7 @@ import { COLORS } from '../theme/colors';
 import { ChatMessage, Kural } from '../types';
 import { ApiService } from '../services/api';
 import { speakText, stopSpeech } from '../utils/speech';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 
 interface ChatModalProps {
   visible: boolean;
@@ -68,7 +69,92 @@ export const ChatModal: React.FC<ChatModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [savedKuralNumbers, setSavedKuralNumbers] = useState<number[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  // Hook into native speech recognition to listen to voice and convert into question sentence
+  useSpeechRecognitionEvent('start', () => {
+    setIsListening(true);
+    setVoiceNotice(
+      language === 'ta'
+        ? '🎙️ குரல் கேட்கிறது... பேசுங்கள்'
+        : '🎙️ Listening... Speak your question'
+    );
+  });
+
+  useSpeechRecognitionEvent('end', () => {
+    setIsListening(false);
+    setVoiceNotice(null);
+  });
+
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcript = event.results[0]?.transcript || '';
+    if (transcript && transcript.trim()) {
+      // Live update question input field with transcribed sentence
+      setInputText(transcript.trim());
+      setVoiceNotice(null);
+    }
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    setIsListening(false);
+    setVoiceNotice(null);
+    if (event.error === 'not-allowed') {
+      Alert.alert(
+        'Microphone Permission',
+        'Microphone permission is required to listen to your voice. Please allow microphone access in device settings.'
+      );
+    } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+      console.warn('Speech recognition notice:', event.error, event.message);
+    }
+  });
+
+  const handleVoicePress = async () => {
+    if (isListening) {
+      try {
+        await ExpoSpeechRecognitionModule.stop();
+      } catch (e) {
+        console.warn('Error stopping speech recognition:', e);
+      }
+      setIsListening(false);
+      setVoiceNotice(null);
+      return;
+    }
+
+    try {
+      const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Microphone Permission Required',
+          'Please grant microphone permission to allow SUBA to listen to your voice and change it into a sentence for your question.'
+        );
+        return;
+      }
+
+      setVoiceNotice(
+        language === 'ta'
+          ? '🎙️ குரல் கேட்கிறது... பேசுங்கள்'
+          : '🎙️ Listening... Speak your question'
+      );
+
+      await ExpoSpeechRecognitionModule.start({
+        lang: language === 'en' ? 'en-IN' : 'ta-IN',
+        interimResults: true,
+        continuous: false,
+        addsPunctuation: true,
+      });
+      setIsListening(true);
+    } catch (err: any) {
+      console.warn('Speech recognition start failed:', err);
+      setIsListening(false);
+      setVoiceNotice(null);
+      Alert.alert(
+        'Voice Input',
+        'Unable to start voice listening. Please ensure speech recognition is supported on your device.'
+      );
+    }
+  };
 
   // Hardware back button on Android
   useEffect(() => {
@@ -556,6 +642,31 @@ export const ChatModal: React.FC<ChatModalProps> = ({
         )}
 
         {/* Bottom Input Area matching screenshot */}
+        {/* Active Speech-to-Text Listening Banner */}
+        {isListening && (
+          <View style={styles.listeningBanner}>
+            <View style={styles.listeningBadge}>
+              <View style={styles.listeningDot} />
+              <Ionicons name="mic" size={16} color="#DC2626" />
+              <Text style={styles.listeningTitle}>
+                {language === 'ta'
+                  ? 'குரல் கேட்கிறது... பேசுங்கள் (தமிழ் / English)'
+                  : 'Listening to your voice... Speak your question now'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleVoicePress}
+              style={styles.listeningDoneBtn}
+              accessibilityLabel="Finish speaking"
+            >
+              <Ionicons name="checkmark-circle" size={14} color="#166534" style={{ marginRight: 3 }} />
+              <Text style={styles.listeningDoneText}>
+                {language === 'ta' ? 'முடிந்தது (Done)' : 'Done'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.inputBar}>
           {/* Plus icon circle button */}
           <TouchableOpacity
@@ -567,13 +678,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({
           </TouchableOpacity>
 
           {/* Pill Input with Mic button inside */}
-          <View style={styles.pillInputContainer}>
+          <View style={[styles.pillInputContainer, isListening && styles.pillInputListening]}>
             <TextInput
               style={styles.textInput}
               value={inputText}
               onChangeText={setInputText}
-              placeholder="Ask me about Thirukkural..."
-              placeholderTextColor="#94A3B8"
+              placeholder={isListening ? (language === 'ta' ? 'பேசுங்கள், எழுத்துக்கள் இங்கே தோன்றும்...' : 'Listening... your words will appear here') : 'Ask me about Thirukkural...'}
+              placeholderTextColor={isListening ? '#DC2626' : '#94A3B8'}
               multiline
               maxLength={600}
               returnKeyType="default"
@@ -581,13 +692,15 @@ export const ChatModal: React.FC<ChatModalProps> = ({
             />
 
             <TouchableOpacity
-              style={styles.micBtn}
-              onPress={() => {
-                Alert.alert('Voice Input', 'Speak your question in Tamil or English...');
-              }}
-              accessibilityLabel="Voice input"
+              style={[styles.micBtn, isListening && styles.micBtnActive]}
+              onPress={handleVoicePress}
+              accessibilityLabel={isListening ? 'Stop listening' : 'Voice input'}
             >
-              <Ionicons name="mic-outline" size={20} color="#64748B" />
+              <Ionicons
+                name={isListening ? 'radio-button-on' : 'mic-outline'}
+                size={20}
+                color={isListening ? '#DC2626' : '#64748B'}
+              />
             </TouchableOpacity>
           </View>
 
@@ -976,6 +1089,56 @@ const styles = StyleSheet.create({
   },
   micBtn: {
     padding: 6,
+  },
+  micBtnActive: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
+  },
+  pillInputListening: {
+    borderColor: '#F87171',
+    backgroundColor: '#FFF5F5',
+  },
+  listeningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    borderTopWidth: 1,
+    borderTopColor: '#FECACA',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  listeningBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  listeningDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  listeningTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  listeningDoneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  listeningDoneText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#166534',
   },
   sendButton: {
     width: 42,
