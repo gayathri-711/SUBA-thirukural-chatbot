@@ -37,6 +37,12 @@ export default function ChatWindow({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleFocus = () => {
+    setTimeout(() => {
+      scrollToBottom();
+    }, 150);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
@@ -333,6 +339,7 @@ export default function ChatWindow({
                 value={inputText}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
+                onFocus={handleFocus}
                 placeholder={t.composerPlaceholder}
                 className="w-full resize-none py-3 pl-4 pr-12 bg-cream-50 border border-cream-300 rounded-2xl focus:outline-hidden focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-forest-950 placeholder:text-forest-400 text-sm leading-relaxed max-h-32 transition-all font-sans"
               />

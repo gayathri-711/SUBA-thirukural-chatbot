@@ -76,19 +76,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const handleToggleSave = async () => {
-    if (!dailyKural) return;
-    const isNowSaved = await ApiService.toggleSaveKural(dailyKural);
+    const k = dailyKural || FALLBACK_KURAL;
+    const isNowSaved = await ApiService.toggleSaveKural(k);
     setSaved(isNowSaved);
   };
 
   const handleSpeakDaily = async () => {
-    if (!dailyKural) return;
+    const k = dailyKural || FALLBACK_KURAL;
     if (isSpeakingDaily) {
       await stopSpeech();
       setIsSpeakingDaily(false);
     } else {
       setIsSpeakingDaily(true);
-      await speakText(`${dailyKural.line_1_tamil}. ${dailyKural.line_2_tamil}. பொருள்: ${dailyKural.meaning_tamil || dailyKural.explanation_tamil_sp}`, 'ta');
+      await speakText(
+        `${k.line_1_tamil}. ${k.line_2_tamil}. பொருள்: ${k.meaning_tamil || k.explanation_tamil_sp}`,
+        'ta'
+      );
       setIsSpeakingDaily(false);
     }
   };
@@ -99,140 +102,235 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     { title: 'அன்பு', titleEn: 'Love', icon: 'heart', query: 'அன்பு' },
     { title: 'உழைப்பு', titleEn: 'Effort', icon: 'arm-flex', query: 'முயற்சி' },
     { title: 'வாய்மை', titleEn: 'Truth', icon: 'shield-check', query: 'வாய்மை' },
-    { title: 'ஒழுக்கம்', titleEn: 'Virtue', icon: 'star', query: 'ஒழுக்கம்' },
+    { title: 'ஒழுக்கம்', titleEn: 'Virtue', icon: 'star-outline', query: 'ஒழுக்கம்' },
   ];
+
+  const currentKural = dailyKural || FALLBACK_KURAL;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar barStyle="light-content" />
 
-      {/* Top Header */}
+      {/* Clean Executive Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greetingText}>வணக்கம் • Welcome</Text>
-          <Text style={styles.appTitle}>SUBA — திருக்குறள் AI</Text>
+        <View style={styles.headerBrand}>
+          <View style={styles.brandBadge}>
+            <MaterialCommunityIcons name="book-open-page-variant" size={20} color={COLORS.gold} />
+          </View>
+          <View>
+            <View style={styles.titleRow}>
+              <Text style={styles.brandTitle}>SUBA</Text>
+              <Text style={styles.brandDot}>•</Text>
+              <Text style={styles.brandTitleTamil}>சுபா</Text>
+            </View>
+            <Text style={styles.brandSubtitle}>AI திருக்குறள் வழிகாட்டி</Text>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.settingsBtn} onPress={onNavigateToSettings}>
-          <Ionicons name="settings-outline" size={20} color={COLORS.gold} />
+        <TouchableOpacity
+          style={styles.settingsIconBtn}
+          onPress={onNavigateToSettings}
+          accessibilityLabel="Open settings"
+        >
+          <Ionicons name="settings-outline" size={19} color={COLORS.goldLight} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchData();
+            }}
+            tintColor={COLORS.gold}
+            colors={[COLORS.primary, COLORS.gold]}
+          />
+        }
       >
-        {/* Server Connection Banner */}
+        {/* Discrete Server Connection Status Indicator */}
         <TouchableOpacity
-          style={[styles.connectionBanner, serverStatus.healthy ? styles.bannerHealthy : styles.bannerWarning]}
+          style={[styles.connectionStatus, serverStatus.healthy ? styles.statusOnline : styles.statusOffline]}
           onPress={onNavigateToSettings}
+          activeOpacity={0.8}
         >
-          <View style={styles.connectionLeft}>
-            <View style={[styles.statusDot, { backgroundColor: serverStatus.healthy ? COLORS.success : COLORS.warning }]} />
-            <Text style={styles.connectionText}>
-              {serverStatus.healthy
-                ? (isTamil ? 'சுபா சர்வர் தயாராக உள்ளது (1,330 குறள்கள்)' : 'SUBA Backend Online (1,330 Kurals)')
-                : (isTamil ? 'சர்வர் இணைப்பைச் சோதிக்கவும்' : 'Backend offline — Tap to configure IP')}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={serverStatus.healthy ? COLORS.success : COLORS.warning} />
+          <View style={[styles.statusDot, { backgroundColor: serverStatus.healthy ? COLORS.success : COLORS.warning }]} />
+          <Text style={styles.statusText}>
+            {serverStatus.healthy
+              ? (isTamil ? 'சுபா சர்வர் ஆன்லைன் (1,330 குறள்கள்)' : 'SUBA Server Online (1,330 Kurals)')
+              : (isTamil ? 'ஆஃப்லைன் முறை — குறள் 1 உடன் இயங்குகிறது' : 'Offline Mode — Operating with local wisdom')}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
         </TouchableOpacity>
 
-        {/* Hero Wisdom Card */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroHeader}>
-            <MaterialCommunityIcons name="feather" size={20} color={COLORS.gold} />
-            <Text style={styles.heroCategory}>தினசரித் திருக்குறள் • KURAL OF THE DAY</Text>
+        {/* Executive Headline & Welcoming Introduction */}
+        <View style={styles.welcomeCard}>
+          <Text style={styles.welcomeGreeting}>வணக்கம் • Welcome</Text>
+          <Text style={styles.welcomeHeadline}>
+            {isTamil
+              ? 'வாழ்வியல் கேள்விகளுக்கு திருக்குறள் தரும் வழிகாட்டல்'
+              : 'Timeless Thirukkural Guidance for Modern Life Decisions'}
+          </Text>
+          <Text style={styles.welcomeDescription}>
+            {isTamil
+              ? 'வேலை, நட்பு, தொழில், மன அமைதி மற்றும் வாழ்வியல் முடிவுகளுக்கு 1,330 குறள்களின் ஆதாரத்துடன் வழிகாட்டும் AI துணைவன்.'
+              : 'Grounded intelligence across 1,330 couplets to navigate career, ethics, relationships, and peace of mind.'}
+          </Text>
+        </View>
+
+        {/* Prominent Primary Action: Ask SUBA Hero Search Bar */}
+        <TouchableOpacity
+          style={styles.heroAskBar}
+          onPress={onOpenChat}
+          activeOpacity={0.88}
+          accessibilityLabel="Ask SUBA a life question"
+        >
+          <View style={styles.heroAskLeft}>
+            <View style={styles.heroAskIconCircle}>
+              <MaterialCommunityIcons name="chat-question-outline" size={18} color={COLORS.primary} />
+            </View>
+            <Text style={styles.heroAskPlaceholder}>
+              {isTamil
+                ? 'ஒரு சூழல் அல்லது கேள்வி கேட்கவும்... (Ask SUBA)'
+                : 'Ask about career, stress, decisions, or peace...'}
+            </Text>
+          </View>
+          <View style={styles.heroAskBtn}>
+            <Text style={styles.heroAskBtnText}>{isTamil ? 'கேட்க' : 'Ask'}</Text>
+            <Ionicons name="arrow-forward" size={13} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+
+        {/* Elegant Daily Kural Presentation (Hero Wisdom Card) */}
+        <View style={styles.wisdomCard}>
+          <View style={styles.wisdomHeader}>
+            <View style={styles.wisdomTag}>
+              <MaterialCommunityIcons name="feather" size={15} color={COLORS.primary} />
+              <Text style={styles.wisdomTagText}>தினசரித் திருக்குறள் • KURAL OF THE DAY</Text>
+            </View>
+
+            <View style={styles.wisdomActions}>
+              <TouchableOpacity
+                onPress={handleSpeakDaily}
+                style={[styles.wisdomActionBtn, isSpeakingDaily && styles.wisdomActionBtnActive]}
+                accessibilityLabel="Listen to Kural recital in Tamil"
+              >
+                <Ionicons
+                  name={isSpeakingDaily ? 'volume-high' : 'volume-medium-outline'}
+                  size={18}
+                  color={isSpeakingDaily ? '#FFFFFF' : COLORS.primary}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleToggleSave}
+                style={[styles.wisdomActionBtn, saved && styles.wisdomActionBtnSaved]}
+                accessibilityLabel="Bookmark this Kural"
+              >
+                <Ionicons
+                  name={saved ? 'bookmark' : 'bookmark-outline'}
+                  size={17}
+                  color={saved ? COLORS.goldDark : COLORS.primary}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {loadingDaily && !dailyKural ? (
-            <ActivityIndicator size="small" color={COLORS.gold} style={{ marginVertical: 20 }} />
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="small" color={COLORS.gold} />
+            </View>
           ) : (
-            (() => {
-              const currentKural = dailyKural || FALLBACK_KURAL;
-              return (
-                <View>
-                  <View style={styles.kuralBadgeRow}>
-                    <View style={styles.kuralPill}>
-                      <Text style={styles.kuralPillText}>குறள் {currentKural.kural_number}</Text>
-                    </View>
-                    <Text style={styles.kuralChapter}>{currentKural.chapter_name_tamil || 'அறத்துப்பால்'}</Text>
-                    
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <TouchableOpacity onPress={handleSpeakDaily} style={[styles.bookmarkBtn, { marginRight: 6 }]}>
-                        <Ionicons name={isSpeakingDaily ? "volume-high" : "volume-medium-outline"} size={20} color={COLORS.gold} />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity onPress={handleToggleSave} style={styles.bookmarkBtn}>
-                        <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={18} color={COLORS.gold} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View style={styles.coupletBox}>
-                    <Text style={styles.couplet1}>{currentKural.line_1_tamil}</Text>
-                    <Text style={styles.couplet2}>{currentKural.line_2_tamil}</Text>
-                  </View>
-
-                  <Text style={styles.heroMeaning}>
-                    {currentKural.meaning_tamil || currentKural.explanation_tamil_sp}
-                  </Text>
-
-                  {currentKural.meaning_english && (
-                    <Text style={styles.heroMeaningEn}>"{currentKural.meaning_english}"</Text>
-                  )}
+            <View style={styles.kuralContent}>
+              <View style={styles.kuralMetaRow}>
+                <View style={styles.kuralPill}>
+                  <Text style={styles.kuralPillText}>குறள் {currentKural.kural_number}</Text>
                 </View>
-              );
-            })()
+                <Text style={styles.kuralChapter}>{currentKural.chapter_name_tamil || 'அறத்துப்பால்'}</Text>
+                <Text style={styles.kuralDivision}>{currentKural.division}</Text>
+              </View>
+
+              {/* Manuscript Couplet Display */}
+              <View style={styles.coupletBox}>
+                <Text style={styles.coupletLine1}>{currentKural.line_1_tamil}</Text>
+                <Text style={styles.coupletLine2}>{currentKural.line_2_tamil}</Text>
+              </View>
+
+              {/* Tamil Meaning */}
+              <View style={styles.meaningContainer}>
+                <Text style={styles.meaningTitle}>பொருள் விளக்கம்:</Text>
+                <Text style={styles.meaningText}>
+                  {currentKural.meaning_tamil || currentKural.explanation_tamil_sp}
+                </Text>
+              </View>
+
+              {/* English Meaning */}
+              {currentKural.meaning_english && (
+                <View style={styles.meaningEnContainer}>
+                  <Text style={styles.meaningEnText}>
+                    "{currentKural.meaning_english}"
+                  </Text>
+                </View>
+              )}
+            </View>
           )}
         </View>
 
-        {/* 3 Main Divisions (முப்பால்) */}
-        <View style={styles.sectionHeader}>
+        {/* The 3 Main Books (முப்பால் பிரிவுகள்) — Executive Dignified Cards */}
+        <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>முப்பால் பிரிவுகள் (The 3 Books)</Text>
-          <TouchableOpacity onPress={() => onNavigateToBrowse()}>
+          <TouchableOpacity onPress={() => onNavigateToBrowse()} activeOpacity={0.7}>
             <Text style={styles.seeAllText}>அனைத்தும் ➔</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.divisionsGrid}>
+        <View style={styles.divisionsRow}>
+          {/* அறத்துப்பால் */}
           <TouchableOpacity
-            style={[styles.divisionCard, { borderColor: '#E5D6A7' }]}
+            style={styles.divisionCard}
             onPress={() => onNavigateToBrowse('அறத்துப்பால்')}
+            activeOpacity={0.85}
           >
-            <View style={[styles.divisionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <MaterialCommunityIcons name="scale-balance" size={22} color="#D97706" />
+            <View style={styles.divisionIconBox}>
+              <MaterialCommunityIcons name="scale-balance" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.divisionTitle}>அறத்துப்பால்</Text>
-            <Text style={styles.divisionSub}>Virtue • 380 குறள்கள்</Text>
+            <Text style={styles.divisionSub}>Virtue • 380</Text>
           </TouchableOpacity>
 
+          {/* பொருட்பால் */}
           <TouchableOpacity
-            style={[styles.divisionCard, { borderColor: '#BFE3D4' }]}
+            style={styles.divisionCard}
             onPress={() => onNavigateToBrowse('பொருட்பால்')}
+            activeOpacity={0.85}
           >
-            <View style={[styles.divisionIconCircle, { backgroundColor: '#D1FAE5' }]}>
-              <MaterialCommunityIcons name="crown" size={22} color="#059669" />
+            <View style={styles.divisionIconBox}>
+              <MaterialCommunityIcons name="crown-outline" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.divisionTitle}>பொருட்பால்</Text>
-            <Text style={styles.divisionSub}>Wealth • 700 குறள்கள்</Text>
+            <Text style={styles.divisionSub}>Wealth • 700</Text>
           </TouchableOpacity>
 
+          {/* காமத்துப்பால் */}
           <TouchableOpacity
-            style={[styles.divisionCard, { borderColor: '#FBCFE8' }]}
+            style={styles.divisionCard}
             onPress={() => onNavigateToBrowse('காமத்துப்பால்')}
+            activeOpacity={0.85}
           >
-            <View style={[styles.divisionIconCircle, { backgroundColor: '#FCE7F3' }]}>
-              <MaterialCommunityIcons name="heart-multiple" size={22} color="#DB2777" />
+            <View style={styles.divisionIconBox}>
+              <MaterialCommunityIcons name="heart-outline" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.divisionTitle}>காமத்துப்பால்</Text>
-            <Text style={styles.divisionSub}>Love • 250 குறள்கள்</Text>
+            <Text style={styles.divisionSub}>Love • 250</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Popular Life Topics */}
-        <View style={styles.sectionHeader}>
+        {/* Popular Life Topics (வாழ்க்கைத் தலைப்புகள்) */}
+        <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>வாழ்க்கைத் தலைப்புகள் (Life Topics)</Text>
         </View>
 
@@ -242,18 +340,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               key={idx}
               style={styles.topicChip}
               onPress={() => onNavigateToBrowse(undefined, t.query)}
+              activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name={t.icon as any} size={16} color={COLORS.primary} />
+              <MaterialCommunityIcons name={t.icon as any} size={15} color={COLORS.primary} />
               <Text style={styles.topicChipText}>{t.title}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Space for the floating button */}
-        <View style={{ height: 90 }} />
+        <View style={{ height: 95 }} />
       </ScrollView>
 
-      {/* Floating Chat Widget (The user requested a visible widget on the home screen) */}
+      {/* Floating Chat Widget */}
       <FloatingChatWidget onPress={onOpenChat} language={language} />
     </SafeAreaView>
   );
@@ -269,29 +368,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.primaryDark,
   },
-  greetingText: {
-    color: COLORS.goldLight,
-    fontSize: 11,
-    fontWeight: '600',
+  headerBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  brandBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.primaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.gold,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  brandTitle: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
-  appTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
+  brandDot: {
+    color: COLORS.gold,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
-  settingsBtn: {
+  brandTitleTamil: {
+    color: COLORS.goldLight,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  brandSubtitle: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  settingsIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   scroll: {
     flex: 1,
@@ -299,77 +430,193 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  connectionBanner: {
+  connectionStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 14,
     borderWidth: 1,
   },
-  bannerHealthy: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
+  statusOnline: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
   },
-  bannerWarning: {
-    backgroundColor: '#FEF3C7',
+  statusOffline: {
+    backgroundColor: '#FFFBEB',
     borderColor: '#FDE68A',
   },
-  connectionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   statusDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     marginRight: 8,
   },
-  connectionText: {
+  statusText: {
+    flex: 1,
     fontSize: 11,
+    color: COLORS.textSecondary,
     fontWeight: '600',
-    color: COLORS.textPrimary,
   },
-  heroCard: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 20,
+  welcomeCard: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 18,
     padding: 18,
-    borderWidth: 1.5,
-    borderColor: COLORS.gold,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 4,
-    marginBottom: 20,
+    elevation: 2,
   },
-  heroHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+  welcomeGreeting: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textGold,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  heroCategory: {
-    color: COLORS.gold,
-    fontSize: 10,
+  welcomeHeadline: {
+    fontSize: 17,
     fontWeight: '800',
-    letterSpacing: 1,
-    marginLeft: 6,
+    color: COLORS.textPrimary,
+    lineHeight: 24,
+    marginBottom: 6,
   },
-  kuralBadgeRow: {
+  welcomeDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+  },
+  heroAskBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 18,
+    borderWidth: 1.5,
+    borderColor: COLORS.goldBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  heroAskLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  heroAskIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.goldSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroAskPlaceholder: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  heroAskBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    gap: 4,
+  },
+  heroAskBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  wisdomCard: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  wisdomHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
+  },
+  wisdomTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  wisdomTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: 0.5,
+  },
+  wisdomActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  wisdomActionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.goldSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wisdomActionBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  wisdomActionBtnSaved: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  loaderContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  kuralContent: {},
+  kuralMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   kuralPill: {
-    backgroundColor: 'rgba(212, 175, 55, 0.25)',
-    paddingHorizontal: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.gold,
   },
   kuralPillText: {
     color: COLORS.goldLight,
@@ -377,104 +624,117 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   kuralChapter: {
-    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
-  bookmarkBtn: {
-    padding: 4,
+  kuralDivision: {
+    fontSize: 11,
+    color: COLORS.textMuted,
   },
   coupletBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 3,
+    backgroundColor: COLORS.goldSubtle,
+    borderLeftWidth: 4,
     borderLeftColor: COLORS.gold,
-    marginBottom: 10,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
   },
-  couplet1: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  coupletLine1: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.primary,
+    lineHeight: 22,
+    marginBottom: 3,
+  },
+  coupletLine2: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.primary,
+    lineHeight: 22,
+  },
+  meaningContainer: {
+    marginBottom: 8,
+  },
+  meaningTitle: {
+    fontSize: 11,
     fontWeight: '700',
-    lineHeight: 20,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
   },
-  couplet2: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+  meaningText: {
+    fontSize: 13,
     lineHeight: 20,
-    marginTop: 2,
+    color: COLORS.textPrimary,
   },
-  heroMeaning: {
-    color: '#F0EDE6',
+  meaningEnContainer: {
+    backgroundColor: COLORS.ivory,
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  meaningEnText: {
     fontSize: 12,
     lineHeight: 18,
-    marginBottom: 6,
-  },
-  heroMeaningEn: {
-    color: COLORS.goldLight,
-    fontSize: 11,
-    lineHeight: 16,
+    color: COLORS.textSecondary,
     fontStyle: 'italic',
   },
-  errorText: {
-    color: '#F87171',
-    fontSize: 12,
-  },
-  sectionHeader: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
-    marginTop: 4,
+    paddingHorizontal: 2,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.primaryDark,
+    color: COLORS.textPrimary,
   },
   seeAllText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textGold,
+    color: COLORS.goldDark,
   },
-  divisionsGrid: {
+  divisionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+    gap: 10,
+    marginBottom: 22,
   },
   divisionCard: {
     flex: 1,
-    backgroundColor: COLORS.cardBg,
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 12,
-    marginHorizontal: 3,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     alignItems: 'center',
-    borderWidth: 1.5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 3,
+    shadowRadius: 4,
     elevation: 2,
   },
-  divisionIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  divisionIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.accentSage,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   divisionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.textPrimary,
+    marginBottom: 2,
     textAlign: 'center',
   },
   divisionSub: {
-    fontSize: 9,
+    fontSize: 10,
     color: COLORS.textMuted,
-    marginTop: 2,
+    fontWeight: '500',
     textAlign: 'center',
   },
   topicsGrid: {
@@ -485,17 +745,22 @@ const styles = StyleSheet.create({
   topicChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.cardBg,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: 6,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   topicChipText: {
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.textPrimary,
-    marginLeft: 6,
   },
 });

@@ -103,6 +103,7 @@ export default function App() {
           style={styles.centerNavBtn}
           onPress={() => setChatVisible(true)}
           activeOpacity={0.85}
+          accessibilityLabel="Ask SUBA AI Chatbot"
         >
           <View style={styles.centerIconCircle}>
             <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
@@ -141,16 +142,20 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Interactive Full-Screen Chat Modal */}
-      <ChatModal
-        visible={chatVisible}
-        onClose={() => setChatVisible(false)}
-        language={language}
-        onNavigateToSettings={() => {
-          setChatVisible(false);
-          setActiveTab('settings');
-        }}
-      />
+      {/* Interactive Full-Screen Chat Overlay (Directly in Activity for perfect keyboard resize) */}
+      {chatVisible && (
+        <View style={StyleSheet.absoluteFill}>
+          <ChatModal
+            visible={chatVisible}
+            onClose={() => setChatVisible(false)}
+            language={language}
+            onNavigateToSettings={() => {
+              setChatVisible(false);
+              setActiveTab('settings');
+            }}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -184,7 +189,7 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: '#94A3B8',
     marginTop: 2,
     fontWeight: '500',
   },

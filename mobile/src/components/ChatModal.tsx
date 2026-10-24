@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  Modal,
   TouchableOpacity,
   TextInput,
   FlatList,
@@ -13,6 +12,8 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  BackHandler,
+  Keyboard,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../theme/colors';
@@ -28,15 +29,19 @@ interface ChatModalProps {
 }
 
 const SUGGESTIONS = [
-  { id: '1', label: '💼 வேலை & படிப்பு அழுத்தம்', labelEn: 'Stress', query: 'வேலை அல்லது படிப்பில் ஏற்படும் மன அழுத்தம், கவலையை நீக்க வள்ளுவர் கூறும் தீர்வு என்ன?' },
-  { id: '2', label: '💔 நட்பு & ஏமாற்றம்', labelEn: 'Friendship', query: 'நண்பனால் ஏமாற்றப்பட்டால் அல்லது பிரிந்தால் மனதை எப்படித் தேற்றிக் கொள்வது?' },
-  { id: '3', label: '🎯 சோம்பல் & முயற்சி', labelEn: 'Effort', query: 'இலக்கை அடைய சோம்பலை விரட்டி விடாமுயற்சியுடன் உழைப்பது எப்படி?' },
-  { id: '4', label: '💰 பொருளாதார சிக்கல்', labelEn: 'Finance', query: 'பொருளாதார நெருக்கடி மற்றும் பணச் சிக்கலைச் சமாளிக்க திருக்குறள் என்ன வழிகாட்டுகிறது?' },
-  { id: '5', label: '🧘 கோபம் & மன அமைதி', labelEn: 'Peace', query: 'தேவையற்ற கோபத்தை அடக்கி மன அமைதி பெற என்ன வழி?' },
-  { id: '6', label: '❤️ உண்மையான அன்பு', labelEn: 'Love', query: 'குடும்பத்திலும் மனிதர்களிடமும் உண்மையான அன்புடன் வாழ்வது எப்படி?' },
+  { id: '1', label: '💼 வேலை & மன அழுத்தம்', labelEn: 'Career', query: 'வேலை அல்லது படிப்பில் ஏற்படும் மன அழுத்தம், கவலையை நீக்க வள்ளுவர் கூறும் தீர்வு என்ன?' },
+  { id: '2', label: '🤝 நட்பு & நம்பிக்கை', labelEn: 'Friendship', query: 'நல்ல நண்பனை எப்படி அடையாளம் காண்பது? நட்பின் இலக்கணம் என்ன?' },
+  { id: '3', label: '🎯 சோம்பல் & விடாமுயற்சி', labelEn: 'Effort', query: 'இலக்கை அடைய சோம்பலை விரட்டி விடாமுயற்சியுடன் உழைப்பது எப்படி?' },
+  { id: '4', label: '💰 செல்வம் & நிதி நெறி', labelEn: 'Finance', query: 'பொருளாதார நெருக்கடி மற்றும் பணச் சிக்கலைச் சமாளிக்க திருக்குறள் என்ன வழிகாட்டுகிறது?' },
+  { id: '5', label: '🧘 மன அமைதி & கோபம்', labelEn: 'Peace', query: 'தேவையற்ற கோபத்தை அடக்கி மன அமைதி பெற திருக்குறள் தரும் நெறி என்ன?' },
 ];
 
-export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language = 'auto', onNavigateToSettings }) => {
+export const ChatModal: React.FC<ChatModalProps> = ({
+  visible,
+  onClose,
+  language = 'auto',
+  onNavigateToSettings,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,24 +50,49 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
+  // Hardware back button on Android
   useEffect(() => {
-    loadChatHistory();
+    if (!visible) return;
+    const backAction = () => {
+      onClose();
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [visible]);
+
+  // Keep latest message visible when keyboard opens
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 80);
+      }
+    );
+    return () => showSub.remove();
   }, []);
+
+  useEffect(() => {
+    if (visible) {
+      loadChatHistory();
+    }
+  }, [visible]);
 
   const loadChatHistory = async () => {
     const history = await ApiService.getChatHistory();
     if (history && history.length > 0) {
       setMessages(history);
     } else {
-      // Welcome message
       setMessages([
         {
           id: 'welcome',
           sender: 'assistant',
-          text: 'வணக்கம்! நான் சுபா (SUBA). உங்கள் வாழ்க்கைச் சூழல், கேள்விகள் அல்லது குழப்பங்களைக் கூறுங்கள் — 1,330 திருக்குறள்களின் காலத்தால் அழியாத ஞானத்துடன் பதிலளிக்கிறேன்.\n\nAsk me about friendship, career, duty, love, mental peace, or life decisions in Tamil, English, or Tanglish!',
+          text: 'வணக்கம்! நான் சுபா (SUBA). உங்கள் வாழ்க்கைச் சூழல், கேள்விகள் அல்லது குழப்பங்களைக் கூறுங்கள் — 1,330 திருக்குறள்களின் காலத்தால் அழியாத ஞானத்துடன் வழிகாட்டுகிறேன்.\n\nAsk me about career, friendship, duty, leadership, mental peace, or life decisions.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           grounded: true,
-        }
+        },
       ]);
     }
   };
@@ -75,13 +105,17 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
       id: Date.now().toString(),
       sender: 'user',
       text: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInputText('');
     setLoading(true);
+
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
 
     try {
       const response = await ApiService.sendChatMessage(query, langPreference);
@@ -97,96 +131,110 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
         practical_takeaway_english: response.practical_takeaway_english,
         kurals: response.kurals || [],
         grounded: response.grounded,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      const updated = [...newMessages, botMsg];
-      setMessages(updated);
-      await ApiService.saveChatHistory(updated);
+      const finalMessages = [...newMessages, botMsg];
+      setMessages(finalMessages);
+      await ApiService.saveChatHistory(finalMessages);
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'assistant',
-        text: `⚠️ ${err.message || 'Server connection failed.'}`,
+        text: `⚠️ ${err.message || 'சுபாவிடம் இருந்து பதில் பெற முடியவில்லை. சர்வர் இணைப்பைச் சோதிக்கவும்.'}`,
         isError: true,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      const updated = [...newMessages, errorMsg];
-      setMessages(updated);
+      setMessages([...newMessages, errorMsg]);
     } finally {
       setLoading(false);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 150);
+      }, 100);
     }
   };
 
-  const handleSpeak = async (id: string, text: string, lang = 'ta') => {
-    if (speakingId === id) {
+  const handleSpeak = async (msgId: string, text: string, lang = 'ta') => {
+    if (speakingId === msgId) {
       await stopSpeech();
       setSpeakingId(null);
     } else {
-      setSpeakingId(id);
+      setSpeakingId(msgId);
       await speakText(text, lang);
+      setSpeakingId(null);
     }
   };
 
   const handleTranslateMessage = async (msg: ChatMessage) => {
+    if (translatingId) return;
     setTranslatingId(msg.id);
+
     try {
-      // Toggle target language
-      const isCurrentlyTamil = /[\u0B80-\u0BFF]/.test(msg.text);
+      const isCurrentlyTamil = !msg.answer_english && (!msg.language || msg.language === 'ta');
       const targetLang = isCurrentlyTamil ? 'en' : 'ta';
-      const translated = await ApiService.translateText(msg.text, targetLang);
-      
-      setMessages(prev => prev.map(m => {
-        if (m.id === msg.id) {
-          return { ...m, text: translated };
-        }
-        return m;
-      }));
-    } catch (e) {
-      console.warn('Translate error:', e);
+
+      let translated = '';
+      if (targetLang === 'en' && msg.answer_english) {
+        translated = msg.answer_english;
+      } else if (targetLang === 'ta' && msg.answer_tamil) {
+        translated = msg.answer_tamil;
+      } else {
+        translated = await ApiService.translateText(msg.text, targetLang);
+      }
+
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === msg.id) {
+            return {
+              ...m,
+              text: translated,
+              language: targetLang,
+            };
+          }
+          return m;
+        })
+      );
+    } catch (err) {
+      console.warn('Translation error:', err);
     } finally {
       setTranslatingId(null);
     }
   };
 
-  const renderKuralCard = (kural: Kural, index: number) => {
+  const renderKuralCard = (kural: Kural, idx: number) => {
     return (
-      <View key={kural.kural_number || index} style={styles.kuralBox}>
+      <View key={`kural-${kural.kural_number || idx}`} style={styles.kuralCard}>
         <View style={styles.kuralHeader}>
-          <View style={styles.kuralHeaderLeft}>
-            <View style={styles.kuralNumberBadge}>
-              <Text style={styles.kuralNumberText}>குறள் {kural.kural_number}</Text>
-            </View>
-            {kural.chapter_name_tamil && (
-              <Text style={styles.kuralChapterText}>
-                {kural.chapter_name_tamil} {kural.division ? `(${kural.division})` : ''}
-              </Text>
-            )}
+          <View style={styles.kuralNumberBadge}>
+            <Text style={styles.kuralNumberText}>குறள் {kural.kural_number}</Text>
           </View>
+          <Text style={styles.chapterName}>
+            {kural.chapter_name_tamil || kural.chapter_name_english || 'அறத்துப்பால்'}
+          </Text>
 
-          {/* Voice Recital Button for Kural */}
           <TouchableOpacity
             style={styles.voiceSmallBtn}
-            onPress={() => handleSpeak(`kural-${kural.kural_number}`, `${kural.line_1_tamil}. ${kural.line_2_tamil}. பொருள்: ${kural.meaning_tamil}`, 'ta')}
+            onPress={() =>
+              handleSpeak(
+                `kural-${kural.kural_number}`,
+                `${kural.line_1_tamil}. ${kural.line_2_tamil}. பொருள்: ${kural.meaning_tamil || kural.explanation_tamil_sp}`,
+                'ta'
+              )
+            }
           >
             <Ionicons
-              name={speakingId === `kural-${kural.kural_number}` ? "volume-high" : "volume-medium-outline"}
+              name={speakingId === `kural-${kural.kural_number}` ? 'volume-high' : 'volume-medium-outline'}
               size={16}
               color={COLORS.primary}
             />
           </TouchableOpacity>
         </View>
 
-        {/* Couplet */}
         <View style={styles.coupletContainer}>
-          <Text style={styles.coupletLine1}>{kural.line_1_tamil || (kural.kural_tamil?.split('\n')[0])}</Text>
-          <Text style={styles.coupletLine2}>{kural.line_2_tamil || (kural.kural_tamil?.split('\n')[1])}</Text>
+          <Text style={styles.coupletLine1}>{kural.line_1_tamil || kural.kural_tamil?.split('\n')[0]}</Text>
+          <Text style={styles.coupletLine2}>{kural.line_2_tamil || kural.kural_tamil?.split('\n')[1]}</Text>
         </View>
 
-        {/* Tamil Meaning */}
         {(kural.meaning_tamil || kural.explanation_tamil_sp) && (
           <View style={styles.meaningRow}>
             <Text style={styles.meaningLabel}>பொருள்:</Text>
@@ -196,7 +244,6 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
           </View>
         )}
 
-        {/* English Meaning */}
         {kural.meaning_english && (
           <View style={styles.meaningRowEn}>
             <Text style={styles.meaningLabelEn}>English:</Text>
@@ -214,7 +261,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
       <View style={[styles.messageRow, isUser ? styles.messageRowUser : styles.messageRowBot]}>
         {!isUser && (
           <View style={styles.botAvatar}>
-            <MaterialCommunityIcons name="robot" size={16} color={COLORS.gold} />
+            <MaterialCommunityIcons name="feather" size={15} color={COLORS.gold} />
           </View>
         )}
 
@@ -223,12 +270,12 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
             {item.text}
           </Text>
 
-          {/* Practical Takeaway box if available */}
+          {/* Practical Takeaway box */}
           {(item.practical_takeaway || item.practical_takeaway_tamil) && (
             <View style={styles.takeawayBox}>
               <View style={styles.takeawayHeader}>
-                <MaterialCommunityIcons name="lightning-bolt" size={14} color={COLORS.goldDark} />
-                <Text style={styles.takeawayTitle}>வாழ்வியல் பாடம் (Action Takeaway)</Text>
+                <MaterialCommunityIcons name="compass-outline" size={15} color={COLORS.goldDark} />
+                <Text style={styles.takeawayTitle}>வாழ்வியல் பாடம் • Action Takeaway</Text>
               </View>
               <Text style={styles.takeawayText}>
                 {item.practical_takeaway_tamil || item.practical_takeaway}
@@ -245,7 +292,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
           {item.kurals && item.kurals.length > 0 && (
             <View style={styles.kuralsSection}>
               <Text style={styles.kuralsSectionTitle}>
-                📜 ஆதாரக் குறள்கள் ({item.kurals.length})
+                ஆதாரத் திருக்குறள் ({item.kurals.length})
               </Text>
               {item.kurals.map((k, idx) => renderKuralCard(k, idx))}
             </View>
@@ -258,7 +305,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
             </TouchableOpacity>
           )}
 
-          {/* Action Row for Assistant Messages: Voice & Translate */}
+          {/* Audio & Translate Controls */}
           {!isUser && !item.isError && (
             <View style={styles.botActionRow}>
               <TouchableOpacity
@@ -266,12 +313,12 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
                 onPress={() => handleSpeak(item.id, item.text, 'ta')}
               >
                 <Ionicons
-                  name={speakingId === item.id ? "volume-high" : "volume-medium-outline"}
+                  name={speakingId === item.id ? 'volume-high' : 'volume-medium-outline'}
                   size={13}
                   color={COLORS.primary}
                 />
                 <Text style={styles.actionPillText}>
-                  {speakingId === item.id ? 'நிறுத்து (Stop)' : 'ஒலிவடிவம் (Listen)'}
+                  {speakingId === item.id ? 'நிறுத்து' : 'ஒலிவடிவம்'}
                 </Text>
               </TouchableOpacity>
 
@@ -282,7 +329,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
               >
                 <MaterialCommunityIcons name="translate" size={13} color={COLORS.primary} />
                 <Text style={styles.actionPillText}>
-                  {translatingId === item.id ? 'மொழிபெயர்க்கிறது...' : 'மொழிபெயர் (Translate)'}
+                  {translatingId === item.id ? 'மொழிபெயர்க்கிறது...' : 'மொழிபெயர்'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -296,68 +343,75 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
     );
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safeContainer}>
-        <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar barStyle="light-content" />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.avatarLarge}>
-              <MaterialCommunityIcons name="book-open-page-variant" size={20} color={COLORS.gold} />
-            </View>
-            <View>
-              <View style={styles.titleRow}>
-                <Text style={styles.headerTitle}>SUBA • சுபா</Text>
-                <View style={styles.badgeGrounded}>
-                  <Text style={styles.badgeGroundedText}>1,330 Kurals</Text>
-                </View>
+      {/* Executive Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarLarge}>
+            <MaterialCommunityIcons name="book-open-page-variant" size={20} color={COLORS.gold} />
+          </View>
+          <View>
+            <View style={styles.titleRow}>
+              <Text style={styles.headerTitle}>SUBA • சுபா</Text>
+              <View style={styles.badgeGrounded}>
+                <Text style={styles.badgeGroundedText}>1,330 Kurals</Text>
               </View>
-              <Text style={styles.headerSubtitle}>AI Thirukkural Life Guide</Text>
             </View>
+            <Text style={styles.headerSubtitle}>AI Thirukkural Life Guide</Text>
           </View>
+        </View>
 
-          <View style={styles.headerRight}>
-            {/* Language toggle */}
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.langPill}
+            onPress={() => setLangPreference((prev) => (prev === 'ta' ? 'en' : prev === 'en' ? 'auto' : 'ta'))}
+          >
+            <Text style={styles.langPillText}>
+              {langPreference === 'ta' ? 'தமிழ்' : langPreference === 'en' ? 'ENG' : 'இருமொழி'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.closeBtn} onPress={onClose} accessibilityLabel="Close chat">
+            <Ionicons name="close" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Suggestion Chips */}
+      <View style={styles.suggestionsBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsContent}>
+          {SUGGESTIONS.map((s) => (
             <TouchableOpacity
-              style={styles.langPill}
-              onPress={() => setLangPreference(prev => prev === 'ta' ? 'en' : prev === 'en' ? 'auto' : 'ta')}
+              key={s.id}
+              style={styles.suggestionChip}
+              onPress={() => handleSend(s.query)}
+              disabled={loading}
+              activeOpacity={0.8}
             >
-              <Text style={styles.langPillText}>
-                {langPreference === 'ta' ? 'தமிழ்' : langPreference === 'en' ? 'ENG' : 'இருமொழி'}
-              </Text>
+              <Text style={styles.suggestionText}>{s.label}</Text>
             </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Suggestion Chips */}
-        <View style={styles.suggestionsBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsContent}>
-            {SUGGESTIONS.map(s => (
-              <TouchableOpacity
-                key={s.id}
-                style={styles.suggestionChip}
-                onPress={() => handleSend(s.query)}
-                disabled={loading}
-              >
-                <Text style={styles.suggestionText}>{s.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Messages List */}
+      {/* Main Chat Flow with Resilient Keyboard Handling */}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessageItem}
           contentContainerStyle={styles.messagesList}
+          keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
@@ -365,16 +419,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
         {loading && (
           <View style={styles.typingContainer}>
             <ActivityIndicator size="small" color={COLORS.goldDark} />
-            <Text style={styles.typingText}>சுபா குறள்களைத் தேடி ஆராய்கிறது (Analyzing wisdom)...</Text>
+            <Text style={styles.typingText}>சுபா குறள்களைத் தேடி ஆராய்கிறது...</Text>
           </View>
         )}
 
-        {/* Input Bar */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        >
-          <View style={styles.inputBar}>
+        {/* Input Bar — Pinned right above keyboard */}
+        <View style={styles.inputBar}>
+          <View style={styles.inputRow}>
             <TextInput
               style={styles.textInput}
               value={inputText}
@@ -383,19 +434,27 @@ export const ChatModal: React.FC<ChatModalProps> = ({ visible, onClose, language
               placeholderTextColor={COLORS.textMuted}
               multiline
               maxLength={600}
+              returnKeyType="default"
+              blurOnSubmit={false}
             />
 
             <TouchableOpacity
               style={[styles.sendButton, (!inputText.trim() || loading) && styles.sendButtonDisabled]}
               onPress={() => handleSend()}
               disabled={!inputText.trim() || loading}
+              activeOpacity={0.85}
+              accessibilityLabel="Send Question"
             >
-              <Ionicons name="send" size={18} color={inputText.trim() ? '#FFFFFF' : COLORS.textMuted} />
+              <Ionicons
+                name="send"
+                size={17}
+                color={inputText.trim() && !loading ? '#FFFFFF' : COLORS.textMuted}
+              />
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -417,98 +476,107 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   avatarLarge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: COLORS.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.gold,
-    marginRight: 10,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
     color: '#FFFFFF',
-    marginRight: 6,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   badgeGrounded: {
-    backgroundColor: 'rgba(212, 175, 55, 0.25)',
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 0.8,
-    borderColor: COLORS.gold,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
   },
   badgeGroundedText: {
     color: COLORS.goldLight,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
   },
   headerSubtitle: {
+    color: '#CBD5E1',
     fontSize: 11,
-    color: COLORS.goldLight,
     marginTop: 1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   langPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 12,
-    marginRight: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   langPillText: {
-    color: '#FFFFFF',
+    color: COLORS.goldLight,
     fontSize: 11,
     fontWeight: '700',
   },
   closeBtn: {
-    padding: 4,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   suggestionsBar: {
     backgroundColor: COLORS.cardBg,
-    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.cardBorder,
+    paddingVertical: 8,
   },
   suggestionsContent: {
     paddingHorizontal: 12,
+    gap: 8,
   },
   suggestionChip: {
     backgroundColor: COLORS.goldSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.goldLight,
-    marginRight: 8,
   },
   suggestionText: {
     fontSize: 12,
-    fontWeight: '600',
     color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   messagesList: {
-    padding: 16,
+    padding: 14,
     paddingBottom: 20,
   },
   messageRow: {
     flexDirection: 'row',
-    marginBottom: 16,
-    maxWidth: '100%',
+    marginVertical: 6,
+    alignItems: 'flex-start',
   },
   messageRowUser: {
     justifyContent: 'flex-end',
@@ -525,60 +593,62 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
     marginTop: 2,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
   },
   bubble: {
+    maxWidth: '84%',
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    maxWidth: '86%',
+    padding: 13,
   },
   userBubble: {
-    backgroundColor: COLORS.userBubble,
+    backgroundColor: COLORS.primary,
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: COLORS.botBubble,
+    backgroundColor: COLORS.cardBg,
     borderWidth: 1,
-    borderColor: COLORS.botBubbleBorder,
+    borderColor: COLORS.goldBorder,
     borderBottomLeftRadius: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
-    elevation: 1,
+    elevation: 2,
   },
   errorBubble: {
-    borderColor: COLORS.error,
     backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
   },
   messageText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   userMessageText: {
-    color: COLORS.userText,
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
   botMessageText: {
     color: COLORS.textPrimary,
   },
   takeawayBox: {
     marginTop: 10,
+    backgroundColor: COLORS.accentSage,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: COLORS.goldSubtle,
-    borderWidth: 1,
-    borderColor: COLORS.goldLight,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
   },
   takeawayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
     marginBottom: 4,
   },
   takeawayTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.goldDark,
-    marginLeft: 4,
+    color: COLORS.primary,
   },
   takeawayText: {
     fontSize: 12,
@@ -590,8 +660,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     color: COLORS.textSecondary,
-    marginTop: 4,
     fontStyle: 'italic',
+    marginTop: 4,
   },
   kuralsSection: {
     marginTop: 12,
@@ -601,17 +671,17 @@ const styles = StyleSheet.create({
   },
   kuralsSectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primaryLight,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
     marginBottom: 8,
   },
-  kuralBox: {
-    backgroundColor: '#FAF7F0',
+  kuralCard: {
+    backgroundColor: COLORS.goldSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
     borderRadius: 12,
     padding: 10,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E8DEC8',
   },
   kuralHeader: {
     flexDirection: 'row',
@@ -621,167 +691,176 @@ const styles = StyleSheet.create({
   },
   kuralNumberBadge: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   kuralNumberText: {
-    color: COLORS.gold,
+    color: COLORS.goldLight,
     fontSize: 10,
     fontWeight: '700',
   },
-  kuralChapterText: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-  },
-  kuralHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  chapterName: {
     flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginLeft: 8,
   },
   voiceSmallBtn: {
     padding: 4,
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-  botActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    paddingTop: 6,
-    borderTopWidth: 0.5,
-    borderTopColor: '#E8DEC8',
-  },
-  actionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FAF7F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2D5BA',
-  },
-  actionPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.primaryDark,
-    marginLeft: 4,
   },
   coupletContainer: {
-    marginBottom: 6,
-    paddingLeft: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.gold,
+    paddingLeft: 8,
+    marginVertical: 4,
   },
   coupletLine1: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primaryDark,
+    color: COLORS.primary,
     lineHeight: 18,
   },
   coupletLine2: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primaryDark,
+    color: COLORS.primary,
     lineHeight: 18,
   },
   meaningRow: {
-    marginTop: 4,
+    marginTop: 5,
   },
   meaningLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.textGold,
+    color: COLORS.textSecondary,
   },
   meaningText: {
     fontSize: 11,
-    lineHeight: 16,
     color: COLORS.textPrimary,
+    lineHeight: 16,
   },
   meaningRowEn: {
     marginTop: 4,
-    borderTopWidth: 0.5,
-    borderTopColor: '#E8DEC8',
-    paddingTop: 3,
   },
   meaningLabelEn: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
   },
   meaningTextEn: {
     fontSize: 11,
-    lineHeight: 15,
     color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    lineHeight: 15,
+  },
+  botActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.cardBorder,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.goldSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.goldBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  actionPillText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  timestampText: {
+    fontSize: 10,
+    marginTop: 6,
+    alignSelf: 'flex-end',
+  },
+  userTimestamp: {
+    color: COLORS.goldLight,
+  },
+  botTimestamp: {
+    color: COLORS.textMuted,
   },
   settingsRedirectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     marginTop: 8,
-    padding: 6,
-    borderRadius: 6,
+    padding: 8,
     backgroundColor: '#FEE2E2',
+    borderRadius: 8,
   },
   settingsRedirectText: {
     fontSize: 11,
     color: COLORS.error,
     fontWeight: '600',
-    marginLeft: 6,
-  },
-  timestampText: {
-    fontSize: 9,
-    marginTop: 4,
-    alignSelf: 'flex-end',
-  },
-  userTimestamp: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  botTimestamp: {
-    color: COLORS.textMuted,
   },
   typingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 6,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   typingText: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    marginLeft: 8,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
   },
   inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: COLORS.cardBg,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: COLORS.cardBorder,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 8,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: COLORS.ivory,
+    borderWidth: 1.5,
+    borderColor: COLORS.goldBorder,
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 2,
   },
   textInput: {
     flex: 1,
-    backgroundColor: COLORS.bg,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    fontSize: 13,
+    minHeight: 40,
+    maxHeight: 110,
+    fontSize: 14,
     color: COLORS.textPrimary,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    maxHeight: 100,
+    paddingTop: Platform.OS === 'ios' ? 8 : 6,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 6,
+    paddingRight: 8,
+    textAlignVertical: 'center',
   },
   sendButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginBottom: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#D1DBD5',
+    elevation: 0,
   },
 });
