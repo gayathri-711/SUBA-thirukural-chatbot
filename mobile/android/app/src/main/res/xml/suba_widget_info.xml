@@ -4,6 +4,8 @@
     android:minHeight="100dp"
     android:minResizeWidth="140dp"
     android:minResizeHeight="70dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:description="@string/widget_description"
     android:previewImage="@mipmap/ic_launcher"

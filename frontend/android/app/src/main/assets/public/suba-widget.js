@@ -7,7 +7,9 @@
   window.__SUBA_WIDGET_LOADED__ = true;
 
   const currentScript = document.currentScript;
-  const API_URL = (currentScript && currentScript.getAttribute('data-api-url')) || 'http://localhost:8000/api';
+  const API_URL = (currentScript && currentScript.getAttribute('data-api-url')) ||
+                  (typeof window !== 'undefined' && window.localStorage?.getItem('suba_backend_api_url')) ||
+                  'http://192.168.0.9:8000/api';
 
   const styles = `
     .suba-widget-container {

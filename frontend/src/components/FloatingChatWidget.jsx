@@ -92,8 +92,9 @@ export default function FloatingChatWidget({ language = 'auto', aiConfig = {}, o
         {
           id: (Date.now() + 1).toString(),
           sender: 'assistant',
-          text: `⚠️ சர்வர் தொடர்பு பிழை: ${err.message || 'Server error. Please ensure the backend is running.'}`,
+          text: `⚠️ ${err.message || 'Server error. Please ensure the backend is running.'}`,
           isError: true,
+          failedQuery: text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -198,6 +199,17 @@ export default function FloatingChatWidget({ language = 'auto', aiConfig = {}, o
                     }`}
                   >
                     <MarkdownRenderer content={msg.text} />
+
+                    {msg.isError && msg.failedQuery && (
+                      <button
+                        onClick={() => handleSend(msg.failedQuery)}
+                        disabled={loading}
+                        className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] cursor-pointer shadow-xs transition-colors"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>மீண்டும் முயல்க (Retry)</span>
+                      </button>
+                    )}
 
                     {/* Action Takeaway */}
                     {(msg.practical_takeaway || msg.practical_takeaway_tamil) && (

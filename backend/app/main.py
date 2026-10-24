@@ -40,18 +40,39 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS Middleware
-origins = settings.cors_origin_list
-if not origins or "*" in origins:
-    origins = ["*"]
+# CORS Middleware: allow all standard web, local Wi-Fi, and mobile WebView origins
+default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://localhost",
+    "https://localhost",
+    "capacitor://localhost",
+    "ionic://localhost",
+]
+env_origins = [o.strip() for o in settings.cors_origin_list if o.strip()]
+has_wildcard = "*" in env_origins or not env_origins
+allowed_list = list(dict.fromkeys(default_origins + [o for o in env_origins if o != "*"]))
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if has_wildcard:
+    # Use regex to allow any origin while preserving credentials compatibility
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"^https?://.*|^capacitor://.*|^ionic://.*",
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_list,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 # Register Routers
 app.include_router(health.router)

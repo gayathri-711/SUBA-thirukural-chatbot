@@ -1,25 +1,64 @@
 // API Service for SUBA - Thirukkural AI Wisdom Chatbot
 
+export const DEFAULT_MOBILE_API_URL = 'http://192.168.0.9:8000/api';
+
+/**
+ * Checks if running inside an Android APK (Capacitor or Expo WebView)
+ */
+export function isMobileApp() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.Capacitor?.isNativePlatform?.() ||
+    window.Capacitor !== undefined ||
+    window.ReactNativeWebView !== undefined ||
+    window.location.protocol === 'capacitor:' ||
+    window.location.protocol === 'ionic:' ||
+    (window.location.hostname === 'localhost' && !['5173', '3000'].includes(window.location.port))
+  );
+}
+
 export function getApiBaseUrl() {
+  // 1. User configured custom URL from Settings modal
   if (typeof window !== 'undefined' && window.localStorage) {
     const saved = localStorage.getItem('suba_backend_api_url');
     if (saved && saved.trim()) {
-      // If running on phone and saved URL is localhost, ignore it to prevent fetch failed
-      const isRemoteHost = window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-      if (!(isRemoteHost && saved.includes('localhost'))) {
-        return saved.trim().replace(/\/+$/, '');
+      const clean = saved.trim().replace(/\/+$/, '');
+      // If running on phone and saved URL is localhost without port, don't use it
+      if (isMobileApp() && (clean === 'http://localhost' || clean === 'https://localhost')) {
+        // invalid for physical phone
+      } else {
+        return clean;
       }
     }
   }
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
+
+  // 2. Build-time environment variable (e.g. from frontend/.env)
+  if (import.meta.env?.VITE_API_BASE_URL) {
+    const envUrl = import.meta.env.VITE_API_BASE_URL.trim().replace(/\/+$/, '');
+    if (envUrl) return envUrl;
   }
-  // Use same-origin relative path so requests route through the Vite proxy seamlessly
-  // without CORS or port 8000 firewall blocks
+
+  // 3. Browser environment check
   if (typeof window !== 'undefined' && window.location) {
-    return '/api';
+    const { hostname, port, protocol } = window.location;
+
+    // Inside mobile APK / Capacitor: NEVER return relative '/api' which points to phone's localhost
+    if (isMobileApp() || protocol === 'capacitor:' || protocol === 'ionic:') {
+      return DEFAULT_MOBILE_API_URL;
+    }
+
+    // Local Vite dev server on computer (port 5173 or 3000) -> use proxy
+    if ((port === '5173' || port === '3000') && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+      return '/api';
+    }
+
+    // Remote LAN browser access (e.g. http://192.168.0.9:5173)
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:8000/api`;
+    }
   }
-  return 'http://localhost:8000/api';
+
+  return DEFAULT_MOBILE_API_URL;
 }
 
 export function setCustomApiBaseUrl(url) {
@@ -33,18 +72,26 @@ export function setCustomApiBaseUrl(url) {
 }
 
 /**
- * Helper for making typed fetch requests with error handling
+ * Helper for making typed fetch requests with timeout and meaningful error handling
  */
-async function fetchJson(endpoint, options = {}) {
-  const url = `${getApiBaseUrl()}${endpoint}`;
+async function fetchJson(endpoint, options = {}, timeoutMs = 15000) {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${endpoint}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const res = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         ...(options.headers || {})
       },
+      signal: controller.signal,
       ...options
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       let errorMsg = `Server error (${res.status})`;
@@ -61,7 +108,21 @@ async function fetchJson(endpoint, options = {}) {
 
     return await res.json();
   } catch (err) {
+    clearTimeout(timeoutId);
     console.error(`API Error on ${endpoint}:`, err);
+
+    if (err.name === 'AbortError') {
+      throw new Error(
+        `நேரம் கடந்துவிட்டது (${timeoutMs / 1000}s). சர்வர் பதிலளிக்கவில்லை.\nRequest timed out. Please check your backend connection at ${baseUrl}`
+      );
+    }
+
+    if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      throw new Error(
+        `சர்வர் இணைப்பு தோல்வி (Failed to connect).\n\nசேவையக முகவரி: ${baseUrl}\n\n1. கணினியில் backend இயங்குகிறதா என உறுதிப்படுத்தவும் (start_backend.bat).\n2. மொபைலும் கணினியும் ஒரே Wi-Fi இல் உள்ளனவா எனப் பார்க்கவும்.\n3. அமைப்புகள் (⚙️) சென்று உங்கள் கணினியின் IP-ஐ உள்ளிடவும்.`
+      );
+    }
+
     throw err;
   }
 }

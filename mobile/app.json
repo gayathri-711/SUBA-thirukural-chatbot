@@ -19,7 +19,9 @@
       "package": "com.suba.thirukkural",
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
       ],
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
@@ -36,10 +38,10 @@
     "extra": {
       "defaultApiUrl": "http://192.168.0.9:8000/api",
       "eas": {
-        "projectId": "e6e3c158-0987-4d39-9ebf-abdcf8a6d49e"
+        "projectId": "61d5232d-ebfd-4620-ae5f-f318bd2f2e43"
       }
     },
-    "owner": "gayathri711",
+    "owner": "gayathri071126",
     "plugins": [
       [
         "expo-build-properties",

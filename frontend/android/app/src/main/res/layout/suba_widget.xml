@@ -74,8 +74,7 @@
     <TextView
         android:id="@+id/widget_meaning"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:text="எழுத்துக்களுக்கு அகரம் முதன்மை; அதுபோல உலகிற்கு ஆதிபகவன் முதன்மை."
         android:textColor="#CBD5E0"
         android:textSize="10sp"

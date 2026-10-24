@@ -98,6 +98,8 @@ export default function App() {
           cacheEnabled={true}
           pullToRefreshEnabled={true}
           startInLoadingState={true}
+          mediaCapturePermissionGrantType="grant"
+          allowFileAccess={true}
           renderLoading={() => (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="#E6B447" />

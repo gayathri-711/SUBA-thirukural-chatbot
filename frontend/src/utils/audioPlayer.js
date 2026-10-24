@@ -125,42 +125,59 @@ export function playTextAudio({ text, language = 'ta', onStart, onEnd, onError }
   return controller;
 }
 
+// Pre-warm and cache speech synthesis voices for Android WebView
+let cachedVoices = [];
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  cachedVoices = window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    cachedVoices = window.speechSynthesis.getVoices();
+  };
+}
+
 /**
  * Native Browser Web Speech Synthesis Fallback
  */
 function fallbackSpeechSynthesis(text, lang, onStart, onEnd, onError) {
-  if (!('speechSynthesis' in window)) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     if (onError) onError(new Error('Speech synthesis not supported in this browser'));
     return;
   }
 
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
-  utterance.rate = 0.95;
-  utterance.pitch = 1.0;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const targetLangCode = (lang === 'ta' || lang === 'tamil') ? 'ta-IN' : 'en-US';
+    utterance.lang = targetLangCode;
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
 
-  // Select appropriate voice based on language
-  const voices = window.speechSynthesis.getVoices();
-  if (lang === 'ta') {
-    const taVoice = voices.find((v) => v.lang.includes('ta') || v.name.toLowerCase().includes('tamil'));
-    if (taVoice) utterance.voice = taVoice;
-  } else {
-    const enVoice = voices.find((v) => (v.lang.startsWith('en') || v.lang.includes('US') || v.lang.includes('GB')) && !v.lang.includes('ta'));
-    if (enVoice) utterance.voice = enVoice;
+    const voices = cachedVoices.length > 0 ? cachedVoices : window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+      if (lang === 'ta' || lang === 'tamil') {
+        const taVoice = voices.find((v) => v.lang.includes('ta') || v.name.toLowerCase().includes('tamil'));
+        if (taVoice) utterance.voice = taVoice;
+      } else {
+        const enVoice = voices.find((v) => (v.lang.startsWith('en') || v.lang.includes('US') || v.lang.includes('GB')) && !v.lang.includes('ta'));
+        if (enVoice) utterance.voice = enVoice;
+      }
+    }
+
+    utterance.onstart = () => {
+      if (onStart) onStart();
+    };
+    utterance.onend = () => {
+      if (onEnd) onEnd();
+    };
+    utterance.onerror = (err) => {
+      console.warn('Speech synthesis utterance error:', err);
+      if (onError) onError(err);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.warn('Speech synthesis execution failed:', e);
+    if (onError) onError(e);
   }
-
-  utterance.onstart = () => {
-    if (onStart) onStart();
-  };
-  utterance.onend = () => {
-    if (onEnd) onEnd();
-  };
-  utterance.onerror = (err) => {
-    if (onError) onError(err);
-  };
-
-  window.speechSynthesis.speak(utterance);
 }
 
 /**

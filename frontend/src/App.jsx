@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import KuralModal from './components/KuralModal';
 import AiSettingsModal from './components/AiSettingsModal';
 import FloatingChatWidget from './components/FloatingChatWidget';
+import WidgetErrorBoundary from './components/WidgetErrorBoundary';
 
 import Home from './pages/Home';
 import BrowseKurals from './pages/BrowseKurals';
@@ -393,11 +394,13 @@ export default function App() {
 
       {/* Floating Chatbot Widget on all other tabs (Browse, Daily, Saved, History, About) */}
       {activeTab !== 'chat' && (
-        <FloatingChatWidget
-          language={language}
-          aiConfig={aiConfig}
-          onOpenModal={(num) => setModalKuralNumber(num)}
-        />
+        <WidgetErrorBoundary name="Chatbot Widget">
+          <FloatingChatWidget
+            language={language}
+            aiConfig={aiConfig}
+            onOpenModal={(num) => setModalKuralNumber(num)}
+          />
+        </WidgetErrorBoundary>
       )}
     </div>
   );
