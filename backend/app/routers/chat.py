@@ -9,7 +9,7 @@ from app.services.retrieval import retrieval_engine
 from app.services.answer_generator import generate_answer
 from app.services.tanglish import detect_language, CONCEPT_SYNONYMS
 from app.services.conversational import check_conversational_or_meta
-
+from typing import Optional
 router = APIRouter(prefix="/api", tags=["Chat"])
 
 COMMON_ENGLISH_WORDS = {
